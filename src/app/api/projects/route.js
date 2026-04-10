@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Project from "@/models/Project";
 import slugify from "slugify";
+import fs from "fs";
+import path from "path";
 
 export async function GET() {
   try {
@@ -13,7 +15,7 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json(
       { message: "Failed to fetch projects", error: error.message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -22,36 +24,59 @@ export async function POST(request) {
   try {
     await connectDB();
 
-    const body = await request.json();
+    const formData = await request.formData();
 
-    const slug = `${slugify(body.title, { lower: true, strict: true })}-${projectNumber}`;
+    const file = formData.get("image");
+    let imagePath = "";
 
-    const lastProject = await Project.findOne().sort({ projectNumber: -1 });
+    if (file && file.size > 0) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
 
-    const nextProjectNumber = lastProject ? lastProject.projectNumber + 1 : 1;
+      const uploadDir = path.join(process.cwd(), "public/uploads");
+
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+      const filePath = path.join(uploadDir, fileName);
+
+      fs.writeFileSync(filePath, buffer);
+      imagePath = `/uploads/${fileName}`;
+    }
+
+    const count = await Project.countDocuments();
+    const projectNumber = count + 1;
+
+    const title = formData.get("title") || "project";
+
+    const slug = `${slugify(title, { lower: true, strict: true })}-${projectNumber}`;
 
     const newProject = await Project.create({
-      title: body.title,
+      title,
       slug,
-      image: body.image || "",
-      details: body.details || "",
-      clientName: body.clientName || "",
-      country: body.country || "",
-      value: body.value || 0,
-      website: body.website || "",
-      status: body.status || "In Progress",
-      type: body.type || "Other",
-      startDate: body.startDate || null,
-      completeDate: body.completeDate || null,
-      note: body.note || "",
-      projectNumber: nextProjectNumber,
+      image: imagePath,
+      details: formData.get("details") || "",
+      clientName: formData.get("clientName") || "",
+      country: formData.get("country") || "",
+      value: Number(formData.get("value")) || 0,
+      website: formData.get("website") || "",
+      status: formData.get("status") || "In Progress",
+      projectNumber,
+      type: formData.get("type") || "Other",
+      startDate: formData.get("startDate") || null,
+      completeDate: formData.get("completeDate") || null,
+      note: formData.get("note") || "",
     });
 
     return NextResponse.json(newProject, { status: 201 });
   } catch (error) {
+    console.log("PROJECT CREATE ERROR:", error);
+
     return NextResponse.json(
       { message: "Failed to create project", error: error.message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function NewIssuePage() {
   const [projects, setProjects] = useState([]);
+  const searchParams = useSearchParams();
+const selectedProjectId = searchParams.get("projectId");
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -12,18 +15,28 @@ export default function NewIssuePage() {
     status: "Open",
     assignee: "",
     reporter: "",
+    
   });
 
-  useEffect(() => {
-    fetch("/api/projects")
-      .then((res) => res.json())
-      .then((data) => {
-        setProjects(data);
-        if (data.length > 0) {
-          setFormData((prev) => ({ ...prev, projectId: data[0]._id }));
-        }
-      });
-  }, []);
+useEffect(() => {
+  fetch("/api/projects")
+    .then((res) => res.json())
+    .then((data) => {
+      setProjects(data);
+
+      if (selectedProjectId) {
+        setFormData((prev) => ({
+          ...prev,
+          projectId: selectedProjectId,
+        }));
+      } else if (data.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          projectId: data[0]._id,
+        }));
+      }
+    });
+}, [selectedProjectId]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

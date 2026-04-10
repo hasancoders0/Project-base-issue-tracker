@@ -16,6 +16,12 @@ function getStatusClass(status) {
   if (status === "Closed") return "bg-green-100 text-green-600";
   return "bg-gray-100 text-gray-600";
 }
+function getBorderColor(status) {
+  if (status === "Open") return "border-blue-500";
+  if (status === "In Progress") return "border-yellow-500";
+  if (status === "Closed") return "border-green-500";
+  return "border-slate-300";
+}
 
 function getTagClass(tag) {
   const name = tag.toLowerCase();
@@ -28,7 +34,7 @@ function getTagClass(tag) {
   return "bg-gray-100 text-gray-600";
 }
 
-export default function IssuesList({ issues }) {
+export default function IssuesList({ issues, hideProjectFilter = false }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("All");
   const [selectedIssue, setSelectedIssue] = useState(null);
@@ -158,17 +164,19 @@ export default function IssuesList({ issues }) {
               className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none md:w-72"
             />
 
-            <select
-              value={projectFilter}
-              onChange={(e) => setProjectFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none"
-            >
-              {projectOptions.map((project) => (
-                <option key={project} value={project}>
-                  {project}
-                </option>
-              ))}
-            </select>
+            {!hideProjectFilter && (
+              <select
+                value={projectFilter}
+                onChange={(e) => setProjectFilter(e.target.value)}
+                className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none"
+              >
+                {projectOptions.map((project) => (
+                  <option key={project} value={project}>
+                    {project}
+                  </option>
+                ))}
+              </select>
+            )}
 
             <select
               value={sortBy}
@@ -228,7 +236,7 @@ export default function IssuesList({ issues }) {
               key={issue._id}
               type="button"
               onClick={() => setSelectedIssue(issue)}
-              className="rounded-2xl border-2 border-emerald-500 bg-white p-5 text-left text-slate-800 shadow-sm transition hover:-translate-y-1"
+              className={`rounded-2xl border-2 border-t-4 bg-white p-5 text-left text-slate-800 shadow-sm transition hover:-translate-y-1 ${getBorderColor(issue.status)}`}
             >
               <div className="mb-5 flex items-center justify-between gap-3">
                 <span
