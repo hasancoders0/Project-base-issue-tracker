@@ -3,6 +3,54 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
+// 🔥 helper: generate base username
+function generateUsername(fullName, email) {
+  if (fullName) {
+    return fullName
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+  }
+
+  if (email) {
+    return email.split("@")[0].toLowerCase();
+  }
+
+  return "user";
+}
+
+// 🔥 helper: ensure unique username
+async function generateUniqueUsername(baseUsername) {
+  let username = baseUsername;
+  let counter = 1;
+
+  while (await User.findOne({ username })) {
+    username = `${baseUsername}-${counter}`;
+    counter++;
+  }
+
+  return username;
+}
+
+export async function GET() {
+  try {
+    await connectDB();
+
+    const users = await User.find()
+      .select("-password")
+      .populate("assignedProjects", "title slug status");
+
+    return NextResponse.json(users);
+  } catch (error) {
+    return NextResponse.json(
+      { message: "Failed to fetch users", error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request) {
   try {
     await connectDB();
@@ -10,56 +58,101 @@ export async function POST(request) {
     const body = await request.json();
 
     const {
-      name,
+      fullName,
       email,
+      username,
       password,
-      role = "manager",
+      role = "client",
       assignedProjects = [],
       permissions = {},
     } = body;
 
-    if (!name || !email || !password) {
+    // ✅ Required fields
+    if (!fullName || !email || !password || !role) {
       return NextResponse.json(
-        { message: "Name, email and password are required" },
+        {
+          message:
+            "Full name, email, password and role are required",
+        },
         { status: 400 }
       );
     }
 
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
+    // ✅ Email check
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
       return NextResponse.json(
         { message: "User already exists with this email" },
         { status: 400 }
       );
     }
 
+    // 🔥 Username logic
+    let finalUsername = username?.trim();
+
+    if (!finalUsername) {
+      const base = generateUsername(fullName, email);
+      finalUsername = await generateUniqueUsername(base);
+    } else {
+      // ensure manually entered username is unique
+      const exists = await User.findOne({ username: finalUsername });
+
+      if (exists) {
+        return NextResponse.json(
+          { message: "Username already exists" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 🔐 Password hash
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
-      name,
+      fullName,
       email,
+      username: finalUsername,
       password: hashedPassword,
       role,
-      assignedProjects,
+      assignedProjects:
+        role === "admin" ? [] : assignedProjects,
       permissions,
+
+      // defaults
+      image: "",
+      phone: "",
+      address: "",
+      linkedin: "",
+      facebook: "",
+      whatsapp: "",
+      slack: "",
+      website: "",
+      companyName: "",
+      companyWebsite: "",
+      contractStartDate: null,
+      contractEndDate: null,
+      preferredCommunication: "",
+      jobTitle: "",
+      skills: [],
+      experienceLevel: "",
+      cvFile: "",
+      status: "active",
     });
+
+    const savedUser = await User.findById(newUser._id)
+      .select("-password")
+      .populate("assignedProjects", "title slug status");
 
     return NextResponse.json(
       {
         message: "User created successfully",
-        user: {
-          _id: newUser._id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          assignedProjects: newUser.assignedProjects,
-          permissions: newUser.permissions,
-        },
+        user: savedUser,
       },
       { status: 201 }
     );
   } catch (error) {
+    console.log("USER CREATE ERROR:", error);
+
     return NextResponse.json(
       { message: "Failed to create user", error: error.message },
       { status: 500 }

@@ -8,6 +8,7 @@ export default function AddProject() {
 
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -42,54 +43,81 @@ export default function AddProject() {
     }));
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const uploadImage = async () => {
+    if (!imageFile) return "";
 
-  try {
-    const finalType =
-      formData.type === "Other"
-        ? formData.customType || "Other"
-        : formData.type;
+    const uploadFormData = new FormData();
+    uploadFormData.append("file", imageFile);
 
-    const formDataToSend = new FormData();
-
-    formDataToSend.append("title", formData.title);
-    formDataToSend.append("details", formData.details);
-    formDataToSend.append("clientName", formData.clientName);
-    formDataToSend.append("country", formData.country);
-    formDataToSend.append("value", formData.value);
-    formDataToSend.append("website", formData.website);
-    formDataToSend.append("status", formData.status);
-    formDataToSend.append("type", finalType);
-    formDataToSend.append("startDate", formData.startDate);
-    formDataToSend.append("completeDate", formData.completeDate);
-    formDataToSend.append("note", formData.note);
-
-    if (imageFile) {
-      formDataToSend.append("image", imageFile);
-    }
-
-    const res = await fetch("/api/projects", {
+    const uploadRes = await fetch("/api/upload", {
       method: "POST",
-      body: formDataToSend,
+      body: uploadFormData,
     });
 
-    const data = await res.json();
-    console.log("PROJECT RESPONSE:", data);
+    const uploadData = await uploadRes.json();
 
-    if (!res.ok) {
-      alert(data.message || "Failed to create project");
-      return;
+    if (!uploadRes.ok) {
+      throw new Error(uploadData.message || "Image upload failed");
     }
 
-    alert("Project created successfully");
-    router.push("/projects");
-    router.refresh();
-  } catch (error) {
-    console.log("CREATE PROJECT ERROR:", error);
-    alert("Something went wrong");
-  }
-};
+    return uploadData.filePath;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      setLoading(true);
+
+      const finalType =
+        formData.type === "Other"
+          ? formData.customType || "Other"
+          : formData.type;
+
+      let imagePath = "";
+
+      if (imageFile) {
+        imagePath = await uploadImage();
+      }
+
+      const formDataToSend = new FormData();
+
+      formDataToSend.append("title", formData.title);
+      formDataToSend.append("image", imagePath);
+      formDataToSend.append("details", formData.details);
+      formDataToSend.append("clientName", formData.clientName);
+      formDataToSend.append("country", formData.country);
+      formDataToSend.append("value", formData.value);
+      formDataToSend.append("website", formData.website);
+      formDataToSend.append("status", formData.status);
+      formDataToSend.append("type", finalType);
+      formDataToSend.append("startDate", formData.startDate);
+      formDataToSend.append("completeDate", formData.completeDate);
+      formDataToSend.append("note", formData.note);
+
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        body: formDataToSend,
+      });
+
+      const data = await res.json();
+      console.log("PROJECT RESPONSE:", data);
+
+      if (!res.ok) {
+        alert(data.message || "Failed to create project");
+        return;
+      }
+
+      alert("Project created successfully");
+      router.push("/projects");
+      router.refresh();
+    } catch (error) {
+      console.log("CREATE PROJECT ERROR:", error);
+      alert(error.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-3xl p-6">
@@ -288,8 +316,12 @@ const handleSubmit = async (e) => {
           </div>
         </div>
 
-        <button className="rounded-xl bg-violet-600 px-6 py-3 font-medium text-white">
-          Create Project
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-xl bg-violet-600 px-6 py-3 font-medium text-white disabled:opacity-60"
+        >
+          {loading ? "Creating..." : "Create Project"}
         </button>
       </form>
     </div>

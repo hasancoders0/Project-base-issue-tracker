@@ -97,7 +97,7 @@ export default function ProfilePage() {
 
     if (safeSection === "users") {
       return user?.role === "admin" ? (
-        <UserListTab />
+        <UserListTab currentUser={user} />
       ) : (
         <div className="rounded-3xl bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-bold text-slate-900">Access Denied</h2>
@@ -108,9 +108,9 @@ export default function ProfilePage() {
       );
     }
 
-if (safeSection === "edit-profile") {
-  return <EditProfileTab user={user} onUserUpdate={setUser} />;
-}
+    if (safeSection === "edit-profile") {
+      return <EditProfileTab user={user} onUserUpdate={setUser} />;
+    }
 
     if (safeSection === "calendar") {
       return (

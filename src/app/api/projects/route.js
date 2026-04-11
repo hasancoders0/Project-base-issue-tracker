@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Project from "@/models/Project";
 import slugify from "slugify";
-import fs from "fs";
-import path from "path";
 
 export async function GET() {
   try {
@@ -26,32 +24,16 @@ export async function POST(request) {
 
     const formData = await request.formData();
 
-    const file = formData.get("image");
-    let imagePath = "";
-
-    if (file && file.size > 0) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const uploadDir = path.join(process.cwd(), "public/uploads");
-
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-      const filePath = path.join(uploadDir, fileName);
-
-      fs.writeFileSync(filePath, buffer);
-      imagePath = `/uploads/${fileName}`;
-    }
-
     const count = await Project.countDocuments();
     const projectNumber = count + 1;
 
     const title = formData.get("title") || "project";
+    const imagePath = formData.get("image") || "";
 
-    const slug = `${slugify(title, { lower: true, strict: true })}-${projectNumber}`;
+    const slug = `${slugify(title, {
+      lower: true,
+      strict: true,
+    })}-${projectNumber}`;
 
     const newProject = await Project.create({
       title,

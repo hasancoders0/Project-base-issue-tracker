@@ -8,20 +8,23 @@ export async function POST(request) {
     await connectDB();
 
     const body = await request.json();
-    const { email, password } = body;
+    const { identifier, password } = body;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       return NextResponse.json(
-        { message: "Email and password are required" },
+        { message: "Email/Username and password are required" },
         { status: 400 }
       );
     }
 
-    const user = await User.findOne({ email }).populate("assignedProjects");
+    // 🔥 Find user by email OR username
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    }).populate("assignedProjects", "title slug status");
 
     if (!user) {
       return NextResponse.json(
-        { message: "Invalid email or password" },
+        { message: "Invalid credentials" },
         { status: 401 }
       );
     }
@@ -30,7 +33,7 @@ export async function POST(request) {
 
     if (!isPasswordMatch) {
       return NextResponse.json(
-        { message: "Invalid email or password" },
+        { message: "Invalid credentials" },
         { status: 401 }
       );
     }
@@ -39,11 +42,13 @@ export async function POST(request) {
       message: "Login successful",
       user: {
         _id: user._id,
-        name: user.name,
+        fullName: user.fullName,
         email: user.email,
+        username: user.username,
         role: user.role,
+        image: user.image,
         assignedProjects: user.assignedProjects,
-        permissions: user.permissions,
+        status: user.status,
       },
     });
   } catch (error) {
