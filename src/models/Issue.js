@@ -1,5 +1,37 @@
 import mongoose from "mongoose";
 
+const IssueActivitySchema = new mongoose.Schema(
+  {
+    action: {
+      type: String,
+      required: true,
+    },
+    field: {
+      type: String,
+      default: "",
+    },
+    oldValue: {
+      type: String,
+      default: "",
+    },
+    newValue: {
+      type: String,
+      default: "",
+    },
+    message: {
+      type: String,
+      default: "",
+    },
+    updatedBy: {
+      type: String,
+      default: "",
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
 const IssueSchema = new mongoose.Schema(
   {
     title: {
@@ -64,8 +96,41 @@ const IssueSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    attachments: {
+      type: [
+        {
+          name: {
+            type: String,
+            default: "",
+          },
+          url: {
+            type: String,
+            default: "",
+          },
+          type: {
+            type: String,
+            default: "",
+          },
+          size: {
+            type: Number,
+            default: 0,
+          },
+        },
+      ],
+      default: [],
+      validate: {
+        validator: function (value) {
+          return value.length <= 2;
+        },
+        message: "Maximum 2 files allowed",
+      },
+    },
+    activities: {
+      type: [IssueActivitySchema],
+      default: [],
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.models.Issue || mongoose.model("Issue", IssueSchema);

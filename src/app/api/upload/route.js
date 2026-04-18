@@ -17,6 +17,13 @@ export async function POST(request) {
 
     const imageTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
     const pdfTypes = ["application/pdf"];
+    const issueFileTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/jpg",
+      "application/pdf",
+    ];
 
     if (type === "image" && !imageTypes.includes(file.type)) {
       return NextResponse.json(
@@ -32,10 +39,35 @@ export async function POST(request) {
       );
     }
 
+    if (type === "issue" && !issueFileTypes.includes(file.type)) {
+      return NextResponse.json(
+        { message: "Only JPG, PNG, WEBP, and PDF files are allowed for issue attachments" },
+        { status: 400 }
+      );
+    }
+
+    const maxSize = type === "issue" ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { message: "File size is too large" },
+        { status: 400 }
+      );
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const folderName = type === "cv" ? "uploads/cv" : "uploads";
+    let folderName = "uploads";
+
+    if (type === "cv") {
+      folderName = "uploads/cv";
+    }
+
+    if (type === "issue") {
+      folderName = "uploads/issue";
+    }
+
     const uploadDir = path.join(process.cwd(), "public", folderName);
 
     if (!fs.existsSync(uploadDir)) {
@@ -45,8 +77,7 @@ export async function POST(request) {
     const safeFileName = file.name.replace(/\s+/g, "-");
     const fileName = `${Date.now()}-${safeFileName}`;
     const filePath = path.join(uploadDir, fileName);
-    const dbFilePath =
-      type === "cv" ? `/uploads/cv/${fileName}` : `/uploads/${fileName}`;
+    const dbFilePath = `/${folderName}/${fileName}`;
 
     fs.writeFileSync(filePath, buffer);
 
@@ -55,6 +86,7 @@ export async function POST(request) {
       filePath: dbFilePath,
       fileName,
       fileType: file.type,
+      fileSize: file.size,
     });
   } catch (error) {
     return NextResponse.json(

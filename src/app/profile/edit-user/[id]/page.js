@@ -36,6 +36,7 @@ export default function EditUserPage() {
 
   const [projects, setProjects] = useState([]);
   const [user, setUser] = useState(null);
+  const [loggedInUser, setLoggedInUser] = useState(null);
   const [preview, setPreview] = useState("");
 
   const [formData, setFormData] = useState({
@@ -76,6 +77,18 @@ export default function EditUserPage() {
     fetchProjects();
   }, [userId]);
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+
+    if (storedUser) {
+      try {
+        setLoggedInUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.log("USER PARSE ERROR:", error);
+      }
+    }
+  }, []);
+
   const shouldShowProjects = useMemo(() => {
     return (
       formData.role === "project-manager" ||
@@ -83,6 +96,13 @@ export default function EditUserPage() {
       formData.role === "client"
     );
   }, [formData.role]);
+
+  const isOwnAccount =
+    loggedInUser &&
+    user &&
+    (loggedInUser._id === user._id ||
+      loggedInUser.username === user.username ||
+      loggedInUser.email === user.email);
 
   const fetchUser = async () => {
     try {
@@ -288,10 +308,16 @@ export default function EditUserPage() {
         assignedProjects: shouldShowProjects ? formData.assignedProjects : [],
       };
 
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
       const res = await fetch(`/api/users/${user._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": storedUser._id || "",
+          "x-user-email": storedUser.email || "",
+          "x-user-username": storedUser.username || "",
+          "x-user-role": storedUser.role || "",
         },
         body: JSON.stringify(payload),
       });
@@ -316,11 +342,25 @@ export default function EditUserPage() {
   const handleDeleteUser = async () => {
     if (!user?._id) return;
 
+    if (isOwnAccount) {
+      toast.error("You cannot delete your own account");
+      setShowDeleteModal(false);
+      return;
+    }
+
     try {
       setDeleting(true);
 
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
       const res = await fetch(`/api/users/${user._id}`, {
         method: "DELETE",
+        headers: {
+          "x-user-id": storedUser._id || "",
+          "x-user-email": storedUser.email || "",
+          "x-user-username": storedUser.username || "",
+          "x-user-role": storedUser.role || "",
+        },
       });
 
       const data = await res.json();
@@ -387,14 +427,16 @@ export default function EditUserPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowDeleteModal(true)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
-            >
-              <FiTrash2 />
-              Delete User
-            </button>
+            {!isOwnAccount && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+              >
+                <FiTrash2 />
+                Delete User
+              </button>
+            )}
           </div>
         </div>
 
@@ -899,7 +941,7 @@ export default function EditUserPage() {
         </div>
       </div>
 
-      {showDeleteModal && (
+      {showDeleteModal && !isOwnAccount && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 px-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
             <div className="flex items-start gap-3">

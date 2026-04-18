@@ -2,53 +2,88 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  FiUser,
-  FiGrid,
-  FiEdit2,
-  FiCalendar,
-  FiUserPlus,
-  FiUsers,
-  FiPlusSquare,
-  FiAlertCircle,
-  FiHelpCircle,
-} from "react-icons/fi";
-import ProfileSidebarItem from "@/components/ProfileSidebarItem";
+import { FiUser } from "react-icons/fi";
+
 import DashboardTab from "@/components/profile/DashboardTab";
 import MyProfileTab from "@/components/profile/MyProfileTab";
 import UserListTab from "@/components/profile/UserListTab";
 import AddUserTab from "@/components/profile/AddUserTab";
 import EditProfileTab from "@/components/profile/EditProfileTab";
+import ProfileSidebar from "@/components/profile/ProfileSidebar";
+import MyProjectsTab from "@/components/profile/MyProjectsTab";
+import MyTasksTab from "@/components/profile/MyTasksTab";
+import TodoTab from "@/components/profile/TodoTab";
+import AddTaskTab from "@/components/profile/AddTaskTab";
+import AnalyticsTab from "@/components/profile/AnalyticsTab";
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [projects, setProjects] = useState([]);
   const [issues, setIssues] = useState([]);
-  const [mounted, setMounted] = useState(false);
+  const [checkingUser, setCheckingUser] = useState(true);
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    setMounted(true);
+    const checkUser = async () => {
+      const savedUser = localStorage.getItem("user");
 
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+      if (!savedUser) {
+        setCheckingUser(false);
+        return;
+      }
+
+      try {
+        const parsedUser = JSON.parse(savedUser);
+
+        const res = await fetch(`/api/users/${parsedUser._id}`, {
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data?.user || data.user.status !== "active") {
+          localStorage.removeItem("user");
+          setUser(null);
+          setCheckingUser(false);
+          return;
+        }
+
+        setUser(data.user);
+        localStorage.setItem("user", JSON.stringify(data.user));
+      } catch (error) {
+        localStorage.removeItem("user");
+        setUser(null);
+      } finally {
+        setCheckingUser(false);
+      }
+    };
+
+    checkUser();
   }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [projectRes, issueRes] = await Promise.all([
+        const [projectRes, issueRes, userRes] = await Promise.all([
           fetch("/api/projects", { cache: "no-store" }),
           fetch("/api/issues", { cache: "no-store" }),
+          fetch("/api/users", { cache: "no-store" }),
         ]);
 
         const projectData = projectRes.ok ? await projectRes.json() : [];
         const issueData = issueRes.ok ? await issueRes.json() : [];
+        const userData = userRes.ok ? await userRes.json() : [];
 
         setProjects(Array.isArray(projectData) ? projectData : []);
         setIssues(Array.isArray(issueData) ? issueData : []);
+        setUsers(
+          Array.isArray(userData?.users)
+            ? userData.users
+            : Array.isArray(userData)
+              ? userData
+              : [],
+        );
       } catch (error) {
         console.log("PROFILE DASHBOARD ERROR:", error);
       }
@@ -77,9 +112,41 @@ export default function ProfilePage() {
     if (safeSection === "dashboard") {
       return <DashboardTab user={user} projects={projects} issues={issues} />;
     }
+    if (safeSection === "analytics") {
+      return user?.role === "admin" ? (
+        <AnalyticsTab projects={projects} issues={issues} users={users} />
+      ) : (
+        <div className="rounded-3xl bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-bold text-slate-900">Access Denied</h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Only administrators can view analytics.
+          </p>
+        </div>
+      );
+    }
+
+    if (safeSection === "my-projects") {
+      return <MyProjectsTab />;
+    }
+
+    if (safeSection === "my-tasks") {
+      return <MyTasksTab />;
+    }
+
+    if (safeSection === "todo") {
+      return <TodoTab />;
+    }
+
+    if (safeSection === "add-task") {
+      return <AddTaskTab />;
+    }
 
     if (safeSection === "profile") {
       return <MyProfileTab user={user} assignedProjects={assignedProjects} />;
+    }
+
+    if (safeSection === "edit-profile") {
+      return <EditProfileTab user={user} onUserUpdate={setUser} />;
     }
 
     if (safeSection === "add-user") {
@@ -108,10 +175,6 @@ export default function ProfilePage() {
       );
     }
 
-    if (safeSection === "edit-profile") {
-      return <EditProfileTab user={user} onUserUpdate={setUser} />;
-    }
-
     if (safeSection === "calendar") {
       return (
         <div className="rounded-3xl bg-white p-6 shadow-sm">
@@ -137,7 +200,7 @@ export default function ProfilePage() {
     return <DashboardTab user={user} projects={projects} issues={issues} />;
   }
 
-  if (!mounted) {
+  if (checkingUser) {
     return null;
   }
 
@@ -195,90 +258,11 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="rounded-3xl bg-slate-50 p-4">
-            <div className="space-y-3">
-              <ProfileSidebarItem
-                href="#"
-                icon={<FiGrid />}
-                title="Dashboard"
-                subtitle="Overview"
-                active={safeSection === "dashboard"}
-                onClick={() => setActiveSection("dashboard")}
-              />
-
-              <ProfileSidebarItem
-                href="#"
-                icon={<FiUser />}
-                title="My Profile"
-                subtitle="Account details"
-                active={safeSection === "profile"}
-                onClick={() => setActiveSection("profile")}
-              />
-
-              <ProfileSidebarItem
-                href="#"
-                icon={<FiEdit2 />}
-                title="Edit Profile"
-                subtitle="Update account"
-                active={safeSection === "edit-profile"}
-                onClick={() => setActiveSection("edit-profile")}
-              />
-
-              <ProfileSidebarItem
-                href="#"
-                icon={<FiCalendar />}
-                title="Calendar"
-                subtitle="Schedule view"
-                active={safeSection === "calendar"}
-                onClick={() => setActiveSection("calendar")}
-              />
-
-              {user.role === "admin" && (
-                <>
-                  <ProfileSidebarItem
-                    href="#"
-                    icon={<FiUserPlus />}
-                    title="Add User"
-                    subtitle="Admin only"
-                    active={safeSection === "add-user"}
-                    onClick={() => setActiveSection("add-user")}
-                  />
-
-                  <ProfileSidebarItem
-                    href="#"
-                    icon={<FiUsers />}
-                    title="User List"
-                    subtitle="Admin only"
-                    active={safeSection === "users"}
-                    onClick={() => setActiveSection("users")}
-                  />
-                </>
-              )}
-
-              <ProfileSidebarItem
-                href="/projects/add"
-                icon={<FiPlusSquare />}
-                title="Add Project"
-                subtitle="Create project"
-              />
-
-              <ProfileSidebarItem
-                href="/issues/new"
-                icon={<FiAlertCircle />}
-                title="Add Issue"
-                subtitle="Create issue"
-              />
-
-              <ProfileSidebarItem
-                href="#"
-                icon={<FiHelpCircle />}
-                title="Help"
-                subtitle="Support"
-                active={safeSection === "help"}
-                onClick={() => setActiveSection("help")}
-              />
-            </div>
-          </div>
+          <ProfileSidebar
+            user={user}
+            safeSection={safeSection}
+            setActiveSection={setActiveSection}
+          />
         </div>
       </div>
     </div>

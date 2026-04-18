@@ -8,7 +8,9 @@ export async function GET(request, { params }) {
 
     const { projectId } = await params;
 
-    const issues = await Issue.find({ projectId }).sort({ createdAt: -1 });
+    const issues = await Issue.find({ projectId })
+      .populate("projectId", "title slug projectNumber assignedTeamMembers")
+      .sort({ createdAt: -1 });
 
     return NextResponse.json(issues);
   } catch (error) {
