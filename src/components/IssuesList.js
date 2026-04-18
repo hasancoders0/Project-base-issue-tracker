@@ -62,7 +62,67 @@ function formatDate(value) {
   return date.toLocaleDateString("en-GB");
 }
 
-export default function IssuesList({ issues, hideProjectFilter = false }) {
+function getSummaryIcon(activeTab) {
+  if (activeTab === "Open") {
+    return <FiAlertCircle className="text-2xl" />;
+  }
+
+  if (activeTab === "In Progress") {
+    return <FiClock className="text-2xl" />;
+  }
+
+  if (activeTab === "Closed") {
+    return <FiCheckCircle className="text-2xl" />;
+  }
+
+  return <FiHash className="text-2xl" />;
+}
+
+function getSummaryIconWrapClass(activeTab) {
+  if (activeTab === "Open") {
+    return "bg-blue-100 text-blue-600";
+  }
+
+  if (activeTab === "In Progress") {
+    return "bg-amber-100 text-amber-700";
+  }
+
+  if (activeTab === "Closed") {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  return "bg-violet-100 text-violet-600";
+}
+
+function DescriptionPreview({ text, onSeeMore }) {
+  const content = text?.trim() || "No description";
+  const shouldShowSeeMore =
+    content !== "No description" && content.length > 110;
+
+  return (
+    <div className="mt-3">
+      <p className="line-clamp-2 text-sm leading-6 text-slate-500">{content}</p>
+
+      {shouldShowSeeMore && (
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            onSeeMore();
+          }}
+          className="mt-1 inline-block cursor-pointer text-xs font-semibold text-violet-600 transition hover:text-violet-700"
+        >
+          See more
+        </span>
+      )}
+    </div>
+  );
+}
+
+export default function IssuesList({
+  issues,
+  hideProjectFilter = false,
+  useGlobalIssueNumber = true,
+}) {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState("All");
@@ -288,8 +348,12 @@ export default function IssuesList({ issues, hideProjectFilter = false }) {
       <div className="rounded-3xl bg-white p-6 text-slate-800 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-              <FiHash className="text-2xl" />
+            <div
+              className={`flex h-16 w-16 items-center justify-center rounded-2xl ${getSummaryIconWrapClass(
+                activeTab
+              )}`}
+            >
+              {getSummaryIcon(activeTab)}
             </div>
 
             <div>
@@ -355,7 +419,10 @@ export default function IssuesList({ issues, hideProjectFilter = false }) {
                 </div>
 
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
-                  #{issue.issueNumber || "N/A"}
+                  #
+                  {useGlobalIssueNumber
+                    ? issue.globalIssueNumber || issue.issueNumber || "N/A"
+                    : issue.issueNumber || "N/A"}
                 </span>
               </div>
 
@@ -363,9 +430,10 @@ export default function IssuesList({ issues, hideProjectFilter = false }) {
                 {issue.title}
               </h2>
 
-              <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-500">
-                {issue.description || "No description"}
-              </p>
+              <DescriptionPreview
+                text={issue.description}
+                onSeeMore={() => setSelectedIssue(issue)}
+              />
 
               <div className="mt-4 flex flex-wrap gap-2">
                 {issue.tags?.length > 0 ? (
@@ -414,6 +482,7 @@ export default function IssuesList({ issues, hideProjectFilter = false }) {
         handleStatusChange={handleStatusChange}
         statusUpdating={statusUpdating}
         router={router}
+        useGlobalIssueNumber={useGlobalIssueNumber}
       />
 
       <DeleteIssueModal

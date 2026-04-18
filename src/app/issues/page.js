@@ -5,11 +5,14 @@ async function getIssues() {
     cache: "no-store",
   });
 
+  const data = await res.json();
+
   if (!res.ok) {
-    throw new Error("Failed to fetch issues");
+    console.error("GET /api/issues failed:", data);
+    throw new Error(data.message || "Failed to fetch issues");
   }
 
-  return res.json();
+  return data;
 }
 
 export default async function IssuesPage() {

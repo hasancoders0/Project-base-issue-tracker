@@ -29,7 +29,7 @@ const IssueActivitySchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 const IssueSchema = new mongoose.Schema(
@@ -37,6 +37,7 @@ const IssueSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
+      trim: true,
     },
 
     description: {
@@ -50,9 +51,17 @@ const IssueSchema = new mongoose.Schema(
       required: true,
     },
 
+    // project-based ID
     issueNumber: {
       type: Number,
       default: 1,
+    },
+
+    // global unique ID across all issues
+    globalIssueNumber: {
+      type: Number,
+      unique: true,
+      sparse: true,
     },
 
     createdBy: {
@@ -96,6 +105,7 @@ const IssueSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
     attachments: {
       type: [
         {
@@ -125,12 +135,13 @@ const IssueSchema = new mongoose.Schema(
         message: "Maximum 2 files allowed",
       },
     },
+
     activities: {
       type: [IssueActivitySchema],
       default: [],
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 export default mongoose.models.Issue || mongoose.model("Issue", IssueSchema);

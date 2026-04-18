@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Issue from "@/models/Issue";
+import Project from "@/models/Project";
 
 export async function GET() {
   try {
@@ -16,7 +17,7 @@ export async function GET() {
 
     return NextResponse.json(
       { message: "Failed to fetch issues", error: error.message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -27,15 +28,23 @@ export async function POST(request) {
 
     const body = await request.json();
 
-    const issueCount = await Issue.countDocuments({
+    const issueCountByProject = await Issue.countDocuments({
       projectId: body.projectId,
     });
+
+    const totalIssueCount = await Issue.countDocuments();
 
     const newIssue = await Issue.create({
       title: body.title,
       description: body.description || "",
       projectId: body.projectId,
-      issueNumber: issueCount + 1,
+
+      // project page issue number
+      issueNumber: issueCountByProject + 1,
+
+      // global unique issue number for all issues page
+      globalIssueNumber: totalIssueCount + 1,
+
       createdBy: body.createdBy || "admin",
       status: body.status || "Open",
       priority: body.priority || "Medium",
@@ -43,6 +52,7 @@ export async function POST(request) {
       reporter: body.reporter || "",
       tags: body.tags || [],
       note: body.note || "",
+      attachments: body.attachments || [],
       closedAt: body.status === "Closed" ? new Date() : null,
       activities: [
         {
@@ -58,7 +68,7 @@ export async function POST(request) {
 
     const populatedIssue = await Issue.findById(newIssue._id).populate(
       "projectId",
-      "title slug assignedTeamMembers",
+      "title slug projectNumber assignedTeamMembers"
     );
 
     return NextResponse.json(populatedIssue, { status: 201 });
@@ -67,7 +77,7 @@ export async function POST(request) {
 
     return NextResponse.json(
       { message: "Failed to create issue", error: error.message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

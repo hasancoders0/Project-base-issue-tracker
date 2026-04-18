@@ -37,7 +37,11 @@ export default async function ProjectDetailsPage({ params }) {
     <div className="mx-auto max-w-7xl p-6">
       <div className="space-y-6">
         <ProjectDetailsSection project={project} />
-        <IssuesList issues={issues} hideProjectFilter={true}/>
+        <IssuesList
+          issues={issues}
+          hideProjectFilter={true}
+          useGlobalIssueNumber={false}
+        />
       </div>
     </div>
   );
