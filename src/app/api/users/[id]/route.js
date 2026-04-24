@@ -157,6 +157,17 @@ export async function PUT(request, context) {
         "",
 
       jobTitle: body.jobTitle ?? existingUser.jobTitle ?? "",
+
+      designations: Array.isArray(body.designations)
+        ? body.designations
+            .map((item) => String(item).trim())
+            .filter(Boolean)
+            .slice(0, 5)
+        : (existingUser.designations ?? []),
+
+      customDesignation:
+        body.customDesignation ?? existingUser.customDesignation ?? "",
+
       skills: Array.isArray(body.skills)
         ? body.skills.filter(Boolean)
         : body.skills
@@ -164,7 +175,8 @@ export async function PUT(request, context) {
               .split(",")
               .map((item) => item.trim())
               .filter(Boolean)
-          : existingUser.skills || [],
+          : (existingUser.skills ?? []),
+
       experienceLevel:
         body.experienceLevel ?? existingUser.experienceLevel ?? "",
       cvFile: body.cvFile ?? existingUser.cvFile ?? "",
@@ -177,6 +189,7 @@ export async function PUT(request, context) {
     if (body.password && body.password.trim()) {
       updateData.password = await bcrypt.hash(body.password.trim(), 10);
     }
+
     if (finalRole === "admin") {
       await Project.updateMany(
         { assignedTeamMembers: existingUser._id },

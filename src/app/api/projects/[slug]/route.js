@@ -3,6 +3,11 @@ import { connectDB } from "@/lib/mongodb";
 import Project from "@/models/Project";
 import User from "@/models/User";
 import slugify from "slugify";
+import {
+  addActivityIfChanged,
+  createManyActivities,
+  createActivity,
+} from "@/lib/activityHelper";
 
 function getRequester(request) {
   return {
@@ -83,17 +88,61 @@ export async function PATCH(request, { params }) {
     }
 
     if (body.quickUpdateOnly) {
+      const nextStatus = body.status ?? project.status;
+      const nextProjectPhase = body.projectPhase ?? project.projectPhase;
+      const nextEstimatedTime = body.estimatedTime ?? project.estimatedTime;
+
       const quickUpdatedProject = await Project.findOneAndUpdate(
         { slug },
         {
-          status: body.status ?? project.status,
-          projectPhase: body.projectPhase ?? project.projectPhase,
-          estimatedTime: body.estimatedTime ?? project.estimatedTime,
+          status: nextStatus,
+          projectPhase: nextProjectPhase,
+          estimatedTime: nextEstimatedTime,
         },
         { new: true },
       )
         .populate("clientUserId", "fullName username email role address country")
         .populate("assignedTeamMembers", "fullName username email role image");
+
+      const activities = [];
+
+      addActivityIfChanged({
+        activities,
+        entityType: "project",
+        entityId: project._id,
+        projectId: project._id,
+        action: "status_changed",
+        field: "status",
+        from: project.status,
+        to: nextStatus,
+        performedBy: requester.id,
+      });
+
+      addActivityIfChanged({
+        activities,
+        entityType: "project",
+        entityId: project._id,
+        projectId: project._id,
+        action: "phase_changed",
+        field: "projectPhase",
+        from: project.projectPhase,
+        to: nextProjectPhase,
+        performedBy: requester.id,
+      });
+
+      addActivityIfChanged({
+        activities,
+        entityType: "project",
+        entityId: project._id,
+        projectId: project._id,
+        action: "updated",
+        field: "estimatedTime",
+        from: project.estimatedTime,
+        to: nextEstimatedTime,
+        performedBy: requester.id,
+      });
+
+      await createManyActivities(activities);
 
       return NextResponse.json(quickUpdatedProject);
     }
@@ -127,7 +176,8 @@ export async function PATCH(request, { params }) {
       }
 
       finalClientUserId = clientUser._id;
-      finalClientName = clientUser.fullName || clientUser.username || finalClientName;
+      finalClientName =
+        clientUser.fullName || clientUser.username || finalClientName;
       finalCountry = clientUser.country || clientUser.address || finalCountry;
     }
 
@@ -144,33 +194,39 @@ export async function PATCH(request, { params }) {
       (id) => !nextAssignedIds.includes(id),
     );
 
+    const addedMemberIds = nextAssignedIds.filter(
+      (id) => !previousAssignedIds.includes(id),
+    );
+
+    const nextData = {
+      title: updatedTitle,
+      slug: updatedSlug,
+      details: body.details ?? project.details,
+
+      clientSource: finalClientSource,
+      clientUserId: finalClientUserId,
+      clientName: finalClientName,
+      country: finalCountry,
+
+      value: body.value ?? project.value,
+      website: body.website ?? project.website,
+      status: body.status ?? project.status,
+      type: body.type ?? project.type,
+
+      assignedTeamMembers: nextAssignedIds,
+      projectPhase: body.projectPhase ?? project.projectPhase,
+      paymentStatus: body.paymentStatus ?? project.paymentStatus,
+      estimatedTime: body.estimatedTime ?? project.estimatedTime,
+      resourceLink: body.resourceLink ?? project.resourceLink,
+
+      startDate: body.startDate ?? project.startDate,
+      completeDate: body.completeDate ?? project.completeDate,
+      note: body.note ?? project.note,
+    };
+
     const updatedProject = await Project.findOneAndUpdate(
       { slug },
-      {
-        title: updatedTitle,
-        slug: updatedSlug,
-        details: body.details ?? project.details,
-
-        clientSource: finalClientSource,
-        clientUserId: finalClientUserId,
-        clientName: finalClientName,
-        country: finalCountry,
-
-        value: body.value ?? project.value,
-        website: body.website ?? project.website,
-        status: body.status ?? project.status,
-        type: body.type ?? project.type,
-
-        assignedTeamMembers: nextAssignedIds,
-        projectPhase: body.projectPhase ?? project.projectPhase,
-        paymentStatus: body.paymentStatus ?? project.paymentStatus,
-        estimatedTime: body.estimatedTime ?? project.estimatedTime,
-        resourceLink: body.resourceLink ?? project.resourceLink,
-
-        startDate: body.startDate ?? project.startDate,
-        completeDate: body.completeDate ?? project.completeDate,
-        note: body.note ?? project.note,
-      },
+      nextData,
       { new: true },
     )
       .populate("clientUserId", "fullName username email role address country")
@@ -189,6 +245,149 @@ export async function PATCH(request, { params }) {
         { $pull: { assignedProjects: updatedProject._id } },
       );
     }
+
+    const activities = [];
+
+    addActivityIfChanged({
+      activities,
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      field: "title",
+      from: project.title,
+      to: nextData.title,
+      performedBy: requester.id,
+    });
+
+    addActivityIfChanged({
+      activities,
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      action: "status_changed",
+      field: "status",
+      from: project.status,
+      to: nextData.status,
+      performedBy: requester.id,
+    });
+
+    addActivityIfChanged({
+      activities,
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      action: "phase_changed",
+      field: "projectPhase",
+      from: project.projectPhase,
+      to: nextData.projectPhase,
+      performedBy: requester.id,
+    });
+
+    addActivityIfChanged({
+      activities,
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      action: "client_changed",
+      field: "clientName",
+      from: project.clientName,
+      to: nextData.clientName,
+      performedBy: requester.id,
+    });
+
+    addActivityIfChanged({
+      activities,
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      field: "value",
+      from: project.value,
+      to: nextData.value,
+      performedBy: requester.id,
+    });
+
+    addActivityIfChanged({
+      activities,
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      field: "website",
+      from: project.website,
+      to: nextData.website,
+      performedBy: requester.id,
+    });
+
+    addActivityIfChanged({
+      activities,
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      field: "type",
+      from: project.type,
+      to: nextData.type,
+      performedBy: requester.id,
+    });
+
+    addActivityIfChanged({
+      activities,
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      field: "paymentStatus",
+      from: project.paymentStatus,
+      to: nextData.paymentStatus,
+      performedBy: requester.id,
+    });
+
+    addActivityIfChanged({
+      activities,
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      field: "estimatedTime",
+      from: project.estimatedTime,
+      to: nextData.estimatedTime,
+      performedBy: requester.id,
+    });
+
+    addActivityIfChanged({
+      activities,
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      field: "resourceLink",
+      from: project.resourceLink,
+      to: nextData.resourceLink,
+      performedBy: requester.id,
+    });
+
+    if (addedMemberIds.length > 0) {
+      activities.push({
+        entityType: "project",
+        entityId: project._id,
+        projectId: project._id,
+        action: "assigned",
+        field: "assignedTeamMembers",
+        from: [],
+        to: addedMemberIds,
+        performedBy: requester.id,
+      });
+    }
+
+    if (removedMemberIds.length > 0) {
+      activities.push({
+        entityType: "project",
+        entityId: project._id,
+        projectId: project._id,
+        action: "updated",
+        field: "removedTeamMembers",
+        from: removedMemberIds,
+        to: [],
+        performedBy: requester.id,
+      });
+    }
+
+    await createManyActivities(activities);
 
     return NextResponse.json(updatedProject);
   } catch (error) {
@@ -230,6 +429,17 @@ export async function DELETE(request, { params }) {
       { assignedProjects: project._id },
       { $pull: { assignedProjects: project._id } },
     );
+
+    await createActivity({
+      entityType: "project",
+      entityId: project._id,
+      projectId: project._id,
+      action: "deleted",
+      field: "project",
+      from: project.title,
+      to: null,
+      performedBy: requester.id,
+    });
 
     await Project.findOneAndDelete({ slug });
 

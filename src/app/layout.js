@@ -13,9 +13,21 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning className="relative">
-        <BackgroundParticles />
+        {/* Background Image */}
+        <div
+          className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-8"
+          style={{
+            backgroundImage: "url('/root-background.png')",
+          }}
+        />
 
-        <div className="relative z-10">
+        {/* Particles */}
+        <div className="fixed inset-0 z-10 pointer-events-none">
+          <BackgroundParticles />
+        </div>
+
+        {/* Main Content */}
+        <div className="relative z-20">
           <Header />
           <main className="min-h-screen">{children}</main>
           <Footer />

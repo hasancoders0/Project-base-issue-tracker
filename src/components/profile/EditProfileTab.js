@@ -16,6 +16,26 @@ import {
   FiBriefcase,
 } from "react-icons/fi";
 
+const boardCard =
+  "rounded-[20px] border border-white/10 text-white shadow-[0_18px_60px_rgba(0,0,0,0.25)] backdrop-blur-sm";
+
+const sectionCard =
+  "rounded-[20px] border border-white/10 bg-white/[0.06] p-5 text-white backdrop-blur-md";
+
+const inputWrap =
+  "flex items-center rounded-[14px] border border-white/10 bg-white/[0.07] px-3 transition focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-400/20";
+
+const inputClass =
+  "w-full bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-white/35";
+
+const labelClass = "mb-2 block text-sm font-bold text-white/65";
+
+const fileClass =
+  "w-full rounded-[14px] border border-white/10 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none file:mr-4 file:rounded-full file:border-0 file:bg-violet-100 file:px-4 file:py-2 file:font-bold file:text-violet-700 hover:file:bg-violet-200";
+
+const selectClass =
+  "w-full rounded-[14px] border border-white/10 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20";
+
 export default function EditProfileTab({ user, onUserUpdate }) {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState("");
@@ -26,22 +46,18 @@ export default function EditProfileTab({ user, onUserUpdate }) {
     username: "",
     password: "",
     image: null,
-
     phone: "",
     address: "",
-
     linkedin: "",
     facebook: "",
     whatsapp: "",
     slack: "",
     website: "",
-
     companyName: "",
     companyWebsite: "",
     contractStartDate: "",
     contractEndDate: "",
     preferredCommunication: "",
-
     jobTitle: "",
     skills: "",
     experienceLevel: "",
@@ -57,16 +73,13 @@ export default function EditProfileTab({ user, onUserUpdate }) {
       username: user.username || "",
       password: "",
       image: null,
-
       phone: user.phone || "",
       address: user.address || "",
-
       linkedin: user.linkedin || "",
       facebook: user.facebook || "",
       whatsapp: user.whatsapp || "",
       slack: user.slack || "",
       website: user.website || "",
-
       companyName: user.companyName || "",
       companyWebsite: user.companyWebsite || "",
       contractStartDate: user.contractStartDate
@@ -76,7 +89,6 @@ export default function EditProfileTab({ user, onUserUpdate }) {
         ? new Date(user.contractEndDate).toISOString().slice(0, 10)
         : "",
       preferredCommunication: user.preferredCommunication || "",
-
       jobTitle: user.jobTitle || "",
       skills: Array.isArray(user.skills) ? user.skills.join(", ") : "",
       experienceLevel: user.experienceLevel || "",
@@ -145,13 +157,8 @@ export default function EditProfileTab({ user, onUserUpdate }) {
       let imagePath = user.image || "";
       let cvPath = user.cvFile || "";
 
-      if (formData.image) {
-        imagePath = await uploadFile(formData.image, "image");
-      }
-
-      if (formData.cvFile) {
-        cvPath = await uploadFile(formData.cvFile, "cv");
-      }
+      if (formData.image) imagePath = await uploadFile(formData.image, "image");
+      if (formData.cvFile) cvPath = await uploadFile(formData.cvFile, "cv");
 
       const payload = {
         fullName: formData.fullName,
@@ -159,22 +166,18 @@ export default function EditProfileTab({ user, onUserUpdate }) {
         username: formData.username,
         password: formData.password,
         image: imagePath,
-
         phone: formData.phone,
         address: formData.address,
-
         linkedin: formData.linkedin,
         facebook: formData.facebook,
         whatsapp: formData.whatsapp,
         slack: formData.slack,
         website: formData.website,
-
         companyName: formData.companyName,
         companyWebsite: formData.companyWebsite,
         contractStartDate: formData.contractStartDate,
         contractEndDate: formData.contractEndDate,
         preferredCommunication: formData.preferredCommunication,
-
         jobTitle: formData.jobTitle,
         skills: formData.skills,
         experienceLevel: formData.experienceLevel,
@@ -202,10 +205,7 @@ export default function EditProfileTab({ user, onUserUpdate }) {
       };
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
-
-      if (onUserUpdate) {
-        onUserUpdate(updatedUser);
-      }
+      onUserUpdate?.(updatedUser);
 
       toast.success("Profile updated successfully");
     } catch (error) {
@@ -215,32 +215,27 @@ export default function EditProfileTab({ user, onUserUpdate }) {
     }
   };
 
-  const inputWrap =
-    "flex items-center rounded-2xl border border-slate-300 bg-white px-3 shadow-sm transition focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-100";
-  const inputClass =
-    "w-full bg-transparent px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400";
-  const labelClass = "mb-2 block text-sm font-semibold text-slate-700";
-  const fileClass =
-    "w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none file:mr-4 file:rounded-xl file:border-0 file:bg-violet-100 file:px-4 file:py-2 file:font-medium file:text-violet-700 hover:file:bg-violet-200";
-
   return (
-    <div className="rounded-3xl bg-white p-6 text-slate-800 shadow-sm lg:p-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-900">Edit Profile</h2>
-        <p className="mt-2 text-sm text-slate-500">
-          Update your profile information
+    <div className={`${boardCard} p-5 lg:p-6`}>
+      <div className="mb-6">
+        <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/50">
+          Account Settings
+        </p>
+        <h2 className="mt-2 text-3xl font-bold">Edit Profile</h2>
+        <p className="mt-1 text-sm text-white/55">
+          Update your profile information.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
-          <h3 className="text-xl font-bold text-slate-900">Basic Info</h3>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className={sectionCard}>
+          <h3 className="text-xl font-bold">Basic Info</h3>
 
           <div className="mt-5 grid gap-5 md:grid-cols-2">
             <div>
               <label className={labelClass}>Full Name</label>
               <div className={inputWrap}>
-                <FiUser className="text-slate-400" />
+                <FiUser className="text-white/40" />
                 <input
                   type="text"
                   name="fullName"
@@ -255,21 +250,21 @@ export default function EditProfileTab({ user, onUserUpdate }) {
             <div>
               <label className={labelClass}>Email Address</label>
               <div className={inputWrap}>
-                <FiMail className="text-slate-400" />
+                <FiMail className="text-white/40" />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="hasanrabby009@gmail.com"
+                  placeholder="name@example.com"
                   className={inputClass}
                 />
               </div>
             </div>
 
-            {user?.role === "admin" ? (
-              <div>
-                <label className={labelClass}>Username</label>
+            <div>
+              <label className={labelClass}>Username</label>
+              {user?.role === "admin" ? (
                 <div className={inputWrap}>
                   <input
                     type="text"
@@ -280,20 +275,17 @@ export default function EditProfileTab({ user, onUserUpdate }) {
                     className={inputClass}
                   />
                 </div>
-              </div>
-            ) : (
-              <div>
-                <label className={labelClass}>Username</label>
-                <div className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
+              ) : (
+                <div className="rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/60">
                   {formData.username || "Not set"}
                 </div>
-              </div>
-            )}
-            
+              )}
+            </div>
+
             <div>
               <label className={labelClass}>Password</label>
               <div className={inputWrap}>
-                <FiLock className="text-slate-400" />
+                <FiLock className="text-white/40" />
                 <input
                   type="password"
                   name="password"
@@ -316,17 +308,15 @@ export default function EditProfileTab({ user, onUserUpdate }) {
               />
 
               {preview && (
-                <div className="mt-4 flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="mt-4 flex items-center gap-4 rounded-[16px] border border-white/10 bg-white/[0.07] p-4">
                   <img
                     src={preview}
                     alt="Profile Preview"
-                    className="h-20 w-20 rounded-2xl border border-slate-200 object-cover"
+                    className="h-20 w-20 rounded-[16px] border border-white/10 object-cover"
                   />
                   <div>
-                    <p className="font-semibold text-slate-900">
-                      Image Preview
-                    </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="font-bold text-white">Image Preview</p>
+                    <p className="text-sm text-white/50">
                       Your selected profile image
                     </p>
                   </div>
@@ -336,14 +326,14 @@ export default function EditProfileTab({ user, onUserUpdate }) {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
-          <h3 className="text-xl font-bold text-slate-900">Contact Info</h3>
+        <div className={sectionCard}>
+          <h3 className="text-xl font-bold">Contact Info</h3>
 
           <div className="mt-5 grid gap-5 md:grid-cols-2">
             <div>
               <label className={labelClass}>Phone Number</label>
               <div className={inputWrap}>
-                <FiPhone className="text-slate-400" />
+                <FiPhone className="text-white/40" />
                 <input
                   type="text"
                   name="phone"
@@ -358,7 +348,7 @@ export default function EditProfileTab({ user, onUserUpdate }) {
             <div>
               <label className={labelClass}>Address</label>
               <div className={inputWrap}>
-                <FiMapPin className="text-slate-400" />
+                <FiMapPin className="text-white/40" />
                 <input
                   type="text"
                   name="address"
@@ -372,96 +362,44 @@ export default function EditProfileTab({ user, onUserUpdate }) {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
-          <h3 className="text-xl font-bold text-slate-900">Social Links</h3>
+        <div className={sectionCard}>
+          <h3 className="text-xl font-bold">Social Links</h3>
 
           <div className="mt-5 grid gap-5 md:grid-cols-2">
-            <div>
-              <label className={labelClass}>LinkedIn</label>
-              <div className={inputWrap}>
-                <FiLinkedin className="text-slate-400" />
-                <input
-                  type="text"
-                  name="linkedin"
-                  value={formData.linkedin}
-                  onChange={handleChange}
-                  placeholder="Enter LinkedIn link"
-                  className={inputClass}
-                />
+            {[
+              ["linkedin", "LinkedIn", FiLinkedin],
+              ["facebook", "Facebook", FiFacebook],
+              ["whatsapp", "WhatsApp", FiMessageCircle],
+              ["slack", "Slack", FiMessageCircle],
+              ["website", "Website (optional)", FiGlobe],
+            ].map(([name, label, Icon]) => (
+              <div key={name} className={name === "website" ? "md:col-span-2" : ""}>
+                <label className={labelClass}>{label}</label>
+                <div className={inputWrap}>
+                  <Icon className="text-white/40" />
+                  <input
+                    type="text"
+                    name={name}
+                    value={formData[name]}
+                    onChange={handleChange}
+                    placeholder={`Enter ${label}`}
+                    className={inputClass}
+                  />
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>Facebook</label>
-              <div className={inputWrap}>
-                <FiFacebook className="text-slate-400" />
-                <input
-                  type="text"
-                  name="facebook"
-                  value={formData.facebook}
-                  onChange={handleChange}
-                  placeholder="Enter Facebook link"
-                  className={inputClass}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>WhatsApp</label>
-              <div className={inputWrap}>
-                <FiMessageCircle className="text-slate-400" />
-                <input
-                  type="text"
-                  name="whatsapp"
-                  value={formData.whatsapp}
-                  onChange={handleChange}
-                  placeholder="Enter WhatsApp"
-                  className={inputClass}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>Slack</label>
-              <div className={inputWrap}>
-                <FiMessageCircle className="text-slate-400" />
-                <input
-                  type="text"
-                  name="slack"
-                  value={formData.slack}
-                  onChange={handleChange}
-                  placeholder="Enter Slack"
-                  className={inputClass}
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className={labelClass}>Website (optional)</label>
-              <div className={inputWrap}>
-                <FiGlobe className="text-slate-400" />
-                <input
-                  type="text"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleChange}
-                  placeholder="Enter website"
-                  className={inputClass}
-                />
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
         {user?.role === "client" && (
-          <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
-            <h3 className="text-xl font-bold text-slate-900">Client Fields</h3>
+          <div className={sectionCard}>
+            <h3 className="text-xl font-bold">Client Fields</h3>
 
             <div className="mt-5 grid gap-5 md:grid-cols-2">
               <div>
                 <label className={labelClass}>Company Name</label>
                 <div className={inputWrap}>
-                  <FiBriefcase className="text-slate-400" />
+                  <FiBriefcase className="text-white/40" />
                   <input
                     type="text"
                     name="companyName"
@@ -476,7 +414,7 @@ export default function EditProfileTab({ user, onUserUpdate }) {
               <div>
                 <label className={labelClass}>Company Website</label>
                 <div className={inputWrap}>
-                  <FiGlobe className="text-slate-400" />
+                  <FiGlobe className="text-white/40" />
                   <input
                     type="text"
                     name="companyWebsite"
@@ -495,7 +433,7 @@ export default function EditProfileTab({ user, onUserUpdate }) {
                   name="contractStartDate"
                   value={formData.contractStartDate}
                   onChange={handleChange}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                  className={selectClass}
                 />
               </div>
 
@@ -506,7 +444,7 @@ export default function EditProfileTab({ user, onUserUpdate }) {
                   name="contractEndDate"
                   value={formData.contractEndDate}
                   onChange={handleChange}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                  className={selectClass}
                 />
               </div>
 
@@ -515,7 +453,7 @@ export default function EditProfileTab({ user, onUserUpdate }) {
                   Preferred Communication Method
                 </label>
                 <div className={inputWrap}>
-                  <FiMessageCircle className="text-slate-400" />
+                  <FiMessageCircle className="text-white/40" />
                   <input
                     type="text"
                     name="preferredCommunication"
@@ -531,16 +469,14 @@ export default function EditProfileTab({ user, onUserUpdate }) {
         )}
 
         {(user?.role === "employee" || user?.role === "project-manager") && (
-          <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
-            <h3 className="text-xl font-bold text-slate-900">
-              Professional Info
-            </h3>
+          <div className={sectionCard}>
+            <h3 className="text-xl font-bold">Professional Info</h3>
 
             <div className="mt-5 grid gap-5 md:grid-cols-2">
               <div>
                 <label className={labelClass}>Job Title</label>
                 <div className={inputWrap}>
-                  <FiBriefcase className="text-slate-400" />
+                  <FiBriefcase className="text-white/40" />
                   <input
                     type="text"
                     name="jobTitle"
@@ -555,7 +491,7 @@ export default function EditProfileTab({ user, onUserUpdate }) {
               <div>
                 <label className={labelClass}>Skills</label>
                 <div className={inputWrap}>
-                  <FiFileText className="text-slate-400" />
+                  <FiFileText className="text-white/40" />
                   <input
                     type="text"
                     name="skills"
@@ -573,7 +509,7 @@ export default function EditProfileTab({ user, onUserUpdate }) {
                   name="experienceLevel"
                   value={formData.experienceLevel}
                   onChange={handleChange}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                  className={selectClass}
                 >
                   <option value="">Select experience level</option>
                   <option value="fresher">Fresher</option>
@@ -598,14 +534,14 @@ export default function EditProfileTab({ user, onUserUpdate }) {
                     href={user.cvFile}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-3 inline-block text-sm font-medium text-violet-600 hover:text-violet-700"
+                    className="mt-3 inline-block text-sm font-bold text-cyan-300 hover:text-cyan-200"
                   >
                     View Current CV
                   </a>
                 )}
 
                 {formData.cvFile && (
-                  <p className="mt-3 text-sm text-slate-500">
+                  <p className="mt-3 text-sm text-white/55">
                     Selected: {formData.cvFile.name}
                   </p>
                 )}
@@ -617,7 +553,7 @@ export default function EditProfileTab({ user, onUserUpdate }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-2xl bg-violet-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-200 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-full bg-white py-3.5 text-sm font-bold text-slate-950 shadow-lg transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Saving..." : "Save Changes"}
         </button>

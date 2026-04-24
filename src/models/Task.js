@@ -78,6 +78,21 @@ const TaskSchema = new Schema(
       type: Boolean,
       default: false,
     },
+
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+
+    archivedAt: {
+      type: Date,
+      default: null,
+    },
+
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -89,17 +104,31 @@ TaskSchema.index({ assignedTo: 1 });
 TaskSchema.index({ createdBy: 1 });
 TaskSchema.index({ status: 1 });
 TaskSchema.index({ dueDate: 1 });
+TaskSchema.index({ completedAt: 1 });
+TaskSchema.index({ isArchived: 1 });
+TaskSchema.index({ status: 1, completedAt: 1 });
+TaskSchema.index({ assignedTo: 1, status: 1 });
 
-TaskSchema.pre("validate", function (next) {
+TaskSchema.pre("validate", function () {
   if (this.type === "project" && !this.projectId) {
-    return next(new Error("Project task must have projectId"));
+    throw new Error("Project task must have projectId");
   }
 
   if (this.type === "individual") {
     this.projectId = null;
   }
+});
 
-  next();
+TaskSchema.pre("save", function () {
+  if (this.status === "done") {
+    if (!this.completedAt) {
+      this.completedAt = new Date();
+    }
+  } else {
+    this.completedAt = null;
+    this.isArchived = false;
+    this.archivedAt = null;
+  }
 });
 
 const Task = mongoose.models.Task || mongoose.model("Task", TaskSchema);

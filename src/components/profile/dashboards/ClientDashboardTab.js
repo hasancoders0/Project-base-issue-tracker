@@ -12,36 +12,24 @@ import {
 } from "react-icons/fi";
 
 function getProjectStatusClass(status) {
-  if (status === "Complete") {
-    return "bg-emerald-100 text-emerald-700";
-  }
-
-  if (status === "In Progress") {
-    return "bg-amber-100 text-amber-700";
-  }
-
-  if (status === "Cancel") {
-    return "bg-rose-100 text-rose-700";
-  }
-
-  return "bg-slate-100 text-slate-600";
+  if (status === "Complete") return "bg-emerald-400/15 text-emerald-300";
+  if (status === "In Progress") return "bg-amber-400/15 text-amber-300";
+  if (status === "Cancel") return "bg-rose-400/15 text-rose-300";
+  return "bg-white/10 text-white/70";
 }
 
 function getIssueStatusClass(status) {
-  if (status === "Closed") {
-    return "bg-emerald-100 text-emerald-700";
-  }
-
-  if (status === "In Progress") {
-    return "bg-amber-100 text-amber-700";
-  }
-
-  if (status === "Open") {
-    return "bg-sky-100 text-sky-700";
-  }
-
-  return "bg-slate-100 text-slate-600";
+  if (status === "Closed") return "bg-emerald-400/15 text-emerald-300";
+  if (status === "In Progress") return "bg-amber-400/15 text-amber-300";
+  if (status === "Open") return "bg-sky-400/15 text-sky-300";
+  return "bg-white/10 text-white/70";
 }
+
+const boardCard =
+  "rounded-[20px] border border-white/10 text-white shadow-[0_18px_60px_rgba(0,0,0,0.25)] backdrop-blur-sm";
+
+const innerCard =
+  "rounded-[16px] border border-white/10 bg-white/[0.07] backdrop-blur-md";
 
 export default function ClientDashboardTab({
   user,
@@ -57,7 +45,7 @@ export default function ClientDashboardTab({
   const myProjects = projects.filter((project) => {
     const assignedMembers = Array.isArray(project.assignedTeamMembers)
       ? project.assignedTeamMembers.map((member) =>
-          typeof member === "string" ? member : String(member._id)
+          typeof member === "string" ? member : String(member?._id)
         )
       : [];
 
@@ -87,10 +75,14 @@ export default function ClientDashboardTab({
   ).length;
 
   const openIssues = myIssues.filter((issue) => issue.status === "Open").length;
+
   const progressIssues = myIssues.filter(
     (issue) => issue.status === "In Progress"
   ).length;
-  const closedIssues = myIssues.filter((issue) => issue.status === "Closed").length;
+
+  const closedIssues = myIssues.filter(
+    (issue) => issue.status === "Closed"
+  ).length;
 
   const recentProjects = [...myProjects]
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
@@ -100,244 +92,246 @@ export default function ClientDashboardTab({
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .slice(0, 4);
 
-  const totalProjects = myProjects.length || 1;
   const projectProgressPercent = Math.round(
-    (completedProjects / totalProjects) * 100
+    (completedProjects / (myProjects.length || 1)) * 100
+  );
+
+  const issueClosurePercent = Math.round(
+    (closedIssues / (myIssues.length || 1)) * 100
   );
 
   return (
-    <div className="space-y-6">
-      <div className="overflow-hidden rounded-[32px] bg-gradient-to-r from-indigo-950 via-violet-900 to-fuchsia-900 p-6 text-white shadow-sm lg:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-violet-100">
+    <div className="space-y-4">
+      <div className={`${boardCard} p-4`}>
+        <div className="grid gap-3 lg:grid-cols-[1.25fr_0.85fr_0.7fr]">
+          <div className="rounded-[18px] bg-gradient-to-br from-indigo-600/95 via-violet-700/90 to-fuchsia-900/95 p-5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/70">
               Client Dashboard
-            </div>
+            </p>
 
-            <h1 className="mt-4 text-3xl font-bold leading-tight lg:text-5xl">
-              Welcome back, {user?.name || "Client"}
+            <h1 className="mt-4 text-4xl font-bold leading-tight">
+              Welcome back, {user?.name || user?.fullName || "Client"}
             </h1>
 
-            <p className="mt-3 max-w-xl text-sm text-slate-200 lg:text-base">
-              Track your assigned projects, monitor delivery progress, and review the latest issue updates in one clean place.
+            <p className="mt-4 max-w-md text-sm leading-6 text-white/80">
+              Track assigned projects, monitor delivery progress, and review
+              the latest issue updates.
             </p>
+
+            <div className="mt-7 flex flex-wrap gap-2">
+              <Link
+                href="/projects"
+                className="rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-white/90"
+              >
+                View Projects
+              </Link>
+
+              <Link
+                href="/issues"
+                className="rounded-full border border-white/25 px-4 py-2 text-xs font-bold text-white transition hover:bg-white/10"
+              >
+                View Issues
+              </Link>
+            </div>
           </div>
 
-          <div className="grid min-w-[220px] grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
-              <p className="text-xs text-violet-100">My Projects</p>
-              <p className="mt-2 text-3xl font-bold">{myProjects.length}</p>
+          <div className="rounded-[18px] bg-violet-700/95 p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-400 text-slate-950">
+                <FiFolder />
+              </div>
+
+              <span className="rounded-full bg-yellow-300 px-3 py-1 text-xs font-bold text-slate-950">
+                Client
+              </span>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
-              <p className="text-xs text-violet-100">My Issues</p>
-              <p className="mt-2 text-3xl font-bold">{myIssues.length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+            <h2 className="mt-7 text-3xl font-bold">Progress</h2>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Active Projects</p>
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">
-                {inProgressProjects}
-              </h2>
-            </div>
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
-              <FiClock className="text-2xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Completed</p>
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">
-                {completedProjects}
-              </h2>
-            </div>
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-              <FiCheckCircle className="text-2xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Open Issues</p>
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">
-                {openIssues}
-              </h2>
-            </div>
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
-              <FiAlertCircle className="text-2xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Project Progress</p>
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">
+            <div className="mt-5 border-t border-white/20 pt-4">
+              <p className="text-sm text-white/70">Project Complete</p>
+              <p className="mt-1 text-5xl font-bold">
                 {projectProgressPercent}%
-              </h2>
+              </p>
             </div>
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
-              <FiTrendingUp className="text-2xl" />
+          </div>
+
+          <div className="rounded-[18px] bg-zinc-900/90 p-5">
+            <h2 className="text-3xl font-bold">Overview</h2>
+
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              {[
+                ["Projects", myProjects.length],
+                ["Issues", myIssues.length],
+                ["Done", completedProjects],
+                ["Closed", closedIssues],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="rounded-[14px] bg-white/10 p-3 text-center"
+                >
+                  <p className="text-2xl font-bold">{value}</p>
+                  <p className="mt-1 text-[10px] text-white/55">{label}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
-          <div className="mb-5 flex items-center justify-between">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            label: "Active Projects",
+            value: inProgressProjects,
+            icon: <FiClock />,
+            color: "text-amber-300",
+          },
+          {
+            label: "Completed",
+            value: completedProjects,
+            icon: <FiCheckCircle />,
+            color: "text-emerald-300",
+          },
+          {
+            label: "Open Issues",
+            value: openIssues,
+            icon: <FiAlertCircle />,
+            color: "text-sky-300",
+          },
+          {
+            label: "Project Progress",
+            value: `${projectProgressPercent}%`,
+            icon: <FiTrendingUp />,
+            color: "text-violet-300",
+          },
+        ].map((item) => (
+          <div key={item.label} className={`${boardCard} p-4`}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-white/55">{item.label}</p>
+                <h2 className="mt-2 text-3xl font-bold">{item.value}</h2>
+              </div>
+
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-[14px] bg-white/10 text-xl ${item.color}`}
+              >
+                {item.icon}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-[1fr_0.9fr]">
+        <div className={`${boardCard} p-5`}>
+          <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">
-                Project Overview
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <h2 className="text-xl font-bold">Project Overview</h2>
+              <p className="mt-1 text-sm text-white/55">
                 A quick look at your project delivery status.
               </p>
             </div>
 
-            <FiFolder className="text-slate-400" />
+            <FiFolder className="text-white/45" />
           </div>
 
           <div className="space-y-5">
             <div>
               <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="text-slate-600">Completed</span>
-                <span className="font-semibold text-slate-900">
-                  {projectProgressPercent}%
-                </span>
+                <span className="text-white/65">Completed</span>
+                <span className="font-bold">{projectProgressPercent}%</span>
               </div>
-              <div className="h-3 rounded-full bg-slate-100">
+
+              <div className="h-2 rounded-full bg-white/10">
                 <div
-                  className="h-3 rounded-full bg-emerald-500"
+                  className="h-2 rounded-full bg-emerald-400"
                   style={{ width: `${projectProgressPercent}%` }}
                 />
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">Total</p>
-                <p className="mt-2 text-2xl font-bold text-slate-900">
-                  {myProjects.length}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">In Progress</p>
-                <p className="mt-2 text-2xl font-bold text-amber-700">
-                  {inProgressProjects}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">Complete</p>
-                <p className="mt-2 text-2xl font-bold text-emerald-700">
-                  {completedProjects}
-                </p>
-              </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {[
+                ["Total", myProjects.length],
+                ["In Progress", inProgressProjects],
+                ["Complete", completedProjects],
+              ].map(([label, value]) => (
+                <div key={label} className={`${innerCard} p-4`}>
+                  <p className="text-xs text-white/50">{label}</p>
+                  <p className="mt-2 text-2xl font-bold">{value}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
-          <div className="mb-5 flex items-center justify-between">
+        <div className={`${boardCard} p-5`}>
+          <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Issue Status</h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <h2 className="text-xl font-bold">Issue Status</h2>
+              <p className="mt-1 text-sm text-white/55">
                 Current issue distribution across your projects.
               </p>
             </div>
 
-            <FiLayers className="text-slate-400" />
+            <FiLayers className="text-white/45" />
           </div>
 
-          <div className="space-y-4">
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-600">Open</p>
-                <p className="text-lg font-bold text-sky-700">{openIssues}</p>
+          <div className="space-y-2">
+            {[
+              ["Open", openIssues, "text-sky-300"],
+              ["In Progress", progressIssues, "text-amber-300"],
+              ["Closed", closedIssues, "text-emerald-300"],
+            ].map(([label, value, color]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between rounded-[14px] bg-white/[0.07] px-4 py-3"
+              >
+                <p className="text-sm text-white/65">{label}</p>
+                <p className={`text-lg font-bold ${color}`}>{value}</p>
               </div>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-600">In Progress</p>
-                <p className="text-lg font-bold text-amber-700">
-                  {progressIssues}
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-600">Closed</p>
-                <p className="text-lg font-bold text-emerald-700">
-                  {closedIssues}
-                </p>
-              </div>
-            </div>
+            ))}
 
             <Link
               href="/issues"
-              className="mt-2 flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-4 transition hover:bg-slate-50"
+              className="group mt-2 flex items-center justify-between rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:bg-white/10"
             >
               <div>
-                <p className="font-semibold text-slate-900">View All Issues</p>
-                <p className="text-sm text-slate-500">
-                  Open the issue tracker
-                </p>
+                <p className="font-bold text-white">View All Issues</p>
+                <p className="text-xs text-white/50">Open the issue tracker</p>
               </div>
-              <FiArrowRight className="text-slate-400" />
+
+              <FiArrowRight className="text-white/45 transition group-hover:translate-x-1 group-hover:text-white" />
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">
-              Recent Projects
-            </h2>
-            <Link
-              href="/projects"
-              className="text-sm font-semibold text-violet-600"
-            >
+      <div className="grid gap-3 xl:grid-cols-2">
+        <div className={`${boardCard} p-5`}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold">Recent Projects</h2>
+
+            <Link href="/projects" className="text-xs font-bold text-cyan-300">
               View all
             </Link>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentProjects.length > 0 ? (
               recentProjects.map((project) => (
-                <div
-                  key={project._id}
-                  className="rounded-2xl bg-slate-50 px-4 py-4"
-                >
+                <div key={project._id} className={`${innerCard} px-4 py-3`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-slate-900">
-                        {project.title}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="font-bold">{project.title}</p>
+                      <p className="mt-1 line-clamp-1 text-xs text-white/50">
                         {project.details || "No project details"}
                       </p>
                     </div>
 
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${getProjectStatusClass(
+                      className={`rounded-full px-3 py-1 text-[11px] font-bold ${getProjectStatusClass(
                         project.status
                       )}`}
                     >
@@ -347,43 +341,37 @@ export default function ClientDashboardTab({
                 </div>
               ))
             ) : (
-              <p className="text-sm text-slate-500">No recent projects found.</p>
+              <p className="text-sm text-white/55">
+                No recent projects found.
+              </p>
             )}
           </div>
         </div>
 
-        <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">
-              Recent Issues
-            </h2>
-            <Link
-              href="/issues"
-              className="text-sm font-semibold text-violet-600"
-            >
+        <div className={`${boardCard} p-5`}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold">Recent Issues</h2>
+
+            <Link href="/issues" className="text-xs font-bold text-cyan-300">
               View all
             </Link>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentIssues.length > 0 ? (
               recentIssues.map((issue) => (
-                <div
-                  key={issue._id}
-                  className="rounded-2xl bg-slate-50 px-4 py-4"
-                >
+                <div key={issue._id} className={`${innerCard} px-4 py-3`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-slate-900">
-                        {issue.title}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        #{issue.issueNumber || "N/A"} • {issue.priority || "Medium"}
+                      <p className="font-bold">{issue.title}</p>
+                      <p className="mt-1 text-xs text-white/50">
+                        #{issue.issueNumber || "N/A"} •{" "}
+                        {issue.priority || "Medium"}
                       </p>
                     </div>
 
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${getIssueStatusClass(
+                      className={`rounded-full px-3 py-1 text-[11px] font-bold ${getIssueStatusClass(
                         issue.status
                       )}`}
                     >
@@ -393,7 +381,7 @@ export default function ClientDashboardTab({
                 </div>
               ))
             ) : (
-              <p className="text-sm text-slate-500">No recent issues found.</p>
+              <p className="text-sm text-white/55">No recent issues found.</p>
             )}
           </div>
         </div>

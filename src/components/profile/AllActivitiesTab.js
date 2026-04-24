@@ -1,0 +1,545 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  FiActivity,
+  FiRefreshCw,
+  FiFilter,
+  FiSearch,
+  FiFolder,
+  FiAlertCircle,
+  FiCheckSquare,
+  FiUser,
+  FiPlusCircle,
+  FiTrash2,
+  FiUserPlus,
+  FiClock,
+  FiCheckCircle,
+  FiFlag,
+  FiLayers,
+} from "react-icons/fi";
+
+const boardCard =
+  "rounded-[20px] border border-white/10 text-white shadow-[0_18px_60px_rgba(0,0,0,0.25)] backdrop-blur-sm";
+
+const innerCard =
+  "rounded-[16px] border border-white/10 bg-white/[0.07] backdrop-blur-md";
+
+const selectStyle =
+  "w-full bg-transparent px-3 py-3 text-sm font-semibold text-white outline-none";
+
+function formatValue(value) {
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "None";
+
+    return value
+      .map((item) => {
+        if (typeof item === "object" && item !== null) {
+          return item.fullName || item.name || item.username || item.title || "Item";
+        }
+
+        return String(item)
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (char) => char.toUpperCase());
+      })
+      .join(", ");
+  }
+
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value === null || value === undefined || value === "") return "None";
+
+  return String(value)
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString();
+}
+
+function getEntityIcon(entityType, action, field) {
+  if (entityType === "project") return <FiFolder className="text-base" />;
+  if (entityType === "issue") return <FiAlertCircle className="text-base" />;
+  if (entityType === "task") return <FiCheckSquare className="text-base" />;
+  if (entityType === "user") return <FiUser className="text-base" />;
+  if (action === "created") return <FiPlusCircle className="text-base" />;
+  if (action === "deleted") return <FiTrash2 className="text-base" />;
+  if (action === "assigned" || action === "assignee_changed") {
+    return <FiUserPlus className="text-base" />;
+  }
+  if (field === "status") return <FiCheckCircle className="text-base" />;
+  if (field === "priority") return <FiFlag className="text-base" />;
+  if (field === "projectPhase") return <FiLayers className="text-base" />;
+
+  return <FiActivity className="text-base" />;
+}
+
+function getEntityIconClass(entityType, action, field) {
+  if (entityType === "project") return "bg-violet-400/15 text-violet-300";
+  if (entityType === "issue") return "bg-amber-400/15 text-amber-300";
+  if (entityType === "task") return "bg-emerald-400/15 text-emerald-300";
+  if (entityType === "user") return "bg-sky-400/15 text-sky-300";
+  if (action === "deleted") return "bg-rose-400/15 text-rose-300";
+  if (action === "assigned" || action === "assignee_changed") {
+    return "bg-fuchsia-400/15 text-fuchsia-300";
+  }
+  if (field === "status") return "bg-amber-400/15 text-amber-300";
+  if (field === "priority") return "bg-rose-400/15 text-rose-300";
+
+  return "bg-white/10 text-white/70";
+}
+
+function getActivityTitle(item) {
+  const actor = item.performedBy?.name || "User";
+  const entityType = item.entityType || "item";
+  const action = item.action || "updated";
+
+  if (action === "created") return `${actor} created ${entityType}`;
+  if (action === "deleted") return `${actor} deleted ${entityType}`;
+  if (action === "status_changed") return `${actor} changed ${entityType} status`;
+  if (action === "phase_changed") return `${actor} changed ${entityType} phase`;
+  if (action === "priority_changed") return `${actor} changed ${entityType} priority`;
+  if (action === "review_changed") return `${actor} updated ${entityType} review`;
+  if (action === "assigned") return `${actor} updated ${entityType} assignment`;
+  if (action === "assignee_changed") return `${actor} changed ${entityType} assignee`;
+
+  if (item.field) return `${actor} updated ${entityType} ${formatValue(item.field)}`;
+
+  return `${actor} updated ${entityType}`;
+}
+
+function getActivityDescription(item) {
+  const action = item.action || "updated";
+  const fromValue = formatValue(item.from);
+  const toValue = formatValue(item.to);
+  const projectTitle = item.projectTitle || "";
+
+  let text = "";
+
+  if (action === "created") text = `Created: ${toValue}`;
+  else if (action === "deleted") text = `Deleted: ${fromValue}`;
+  else if (
+    action === "status_changed" ||
+    action === "phase_changed" ||
+    action === "priority_changed" ||
+    action === "review_changed" ||
+    action === "assignee_changed"
+  ) {
+    text = `${fromValue} → ${toValue}`;
+  } else if (action === "assigned") {
+    text = `Assigned to ${toValue}`;
+  } else if (item.field) {
+    text = `${formatValue(item.field)}: ${fromValue} → ${toValue}`;
+  } else {
+    text = `${fromValue} → ${toValue}`;
+  }
+
+  if (projectTitle) return `${text} • ${projectTitle}`;
+  return text;
+}
+
+function groupActivities(activities) {
+  const today = [];
+  const yesterday = [];
+  const older = [];
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(todayStart.getDate() - 1);
+
+  activities.forEach((activity) => {
+    const date = new Date(activity.createdAt);
+
+    if (Number.isNaN(date.getTime())) {
+      older.push(activity);
+      return;
+    }
+
+    if (date >= todayStart) {
+      today.push(activity);
+      return;
+    }
+
+    if (date >= yesterdayStart && date < todayStart) {
+      yesterday.push(activity);
+      return;
+    }
+
+    older.push(activity);
+  });
+
+  return { today, yesterday, older };
+}
+
+function ActivityCard({ item }) {
+  return (
+    <div className={`${innerCard} p-4 transition hover:bg-white/10`}>
+      <div className="flex items-start gap-3">
+        <div
+          className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${getEntityIconClass(
+            item.entityType,
+            item.action,
+            item.field
+          )}`}
+        >
+          {getEntityIcon(item.entityType, item.action, item.field)}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+            <p className="text-sm font-bold text-white">
+              {getActivityTitle(item)}
+            </p>
+
+            <p className="shrink-0 text-xs text-white/40">
+              {formatTime(item.createdAt)}
+            </p>
+          </div>
+
+          <p className="mt-2 text-sm text-white/65">
+            {getActivityDescription(item)}
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {item.entityType && (
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold capitalize text-white/65">
+                {item.entityType}
+              </span>
+            )}
+
+            {item.action && (
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/65">
+                {formatValue(item.action)}
+              </span>
+            )}
+
+            {item.field && (
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/65">
+                {formatValue(item.field)}
+              </span>
+            )}
+
+            {item.projectTitle && (
+              <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-bold text-emerald-300">
+                {item.projectTitle}
+              </span>
+            )}
+
+            {item.performedBy?.name && (
+              <span className="rounded-full bg-violet-400/15 px-3 py-1 text-xs font-bold text-violet-300">
+                By {item.performedBy.name}
+              </span>
+            )}
+          </div>
+
+          {(item.from !== null && item.from !== undefined) ||
+          (item.to !== null && item.to !== undefined) ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {item.from !== null && item.from !== undefined && (
+                <span className="rounded-full bg-rose-400/15 px-3 py-1 text-xs font-bold text-rose-300">
+                  From: {formatValue(item.from)}
+                </span>
+              )}
+
+              {item.to !== null && item.to !== undefined && (
+                <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-bold text-emerald-300">
+                  To: {formatValue(item.to)}
+                </span>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function AllActivitiesTab({ user }) {
+  const [activities, setActivities] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [entityFilter, setEntityFilter] = useState("all");
+  const [actionFilter, setActionFilter] = useState("all");
+  const [userFilter, setUserFilter] = useState("all");
+
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const limit = 20;
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    if (!user?._id) return;
+    setPage(1);
+    fetchActivities({ nextPage: 1, append: false });
+  }, [user?._id, entityFilter, actionFilter, userFilter]);
+
+  async function fetchUsers() {
+    try {
+      const res = await fetch("/api/users", { cache: "no-store" });
+      const data = await res.json();
+
+      const nextUsers = Array.isArray(data?.users)
+        ? data.users
+        : Array.isArray(data)
+        ? data
+        : [];
+
+      setUsers(nextUsers);
+    } catch {
+      setUsers([]);
+    }
+  }
+
+  async function fetchActivities({ nextPage = 1, append = false } = {}) {
+    try {
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+
+      const params = new URLSearchParams({
+        limit: String(limit),
+        page: String(nextPage),
+      });
+
+      if (entityFilter !== "all") params.append("entityType", entityFilter);
+      if (actionFilter !== "all") params.append("action", actionFilter);
+      if (userFilter !== "all") params.append("userId", userFilter);
+
+      const res = await fetch(`/api/activities?${params.toString()}`, {
+        cache: "no-store",
+        headers: {
+          "x-user-id": user?._id || "",
+          "x-user-role": user?.role || "",
+          "x-user-email": user?.email || "",
+          "x-user-username": user?.username || "",
+        },
+      });
+
+      const data = await res.json();
+      const nextActivities = Array.isArray(data.activities)
+        ? data.activities
+        : [];
+
+      setActivities((prev) =>
+        append ? [...prev, ...nextActivities] : nextActivities
+      );
+      setHasMore(Boolean(data?.pagination?.hasMore));
+      setPage(nextPage);
+    } catch {
+      if (!append) setActivities([]);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }
+
+  const filteredActivities = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return activities;
+
+    return activities.filter((item) => {
+      const haystack = [
+        item.entityType,
+        item.action,
+        item.field,
+        item.projectTitle,
+        item.performedBy?.name,
+        formatValue(item.from),
+        formatValue(item.to),
+        getActivityTitle(item),
+        getActivityDescription(item),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(keyword);
+    });
+  }, [activities, searchTerm]);
+
+  const grouped = useMemo(() => {
+    return groupActivities(filteredActivities);
+  }, [filteredActivities]);
+
+  const groups = [
+    { key: "today", label: "Today" },
+    { key: "yesterday", label: "Yesterday" },
+    { key: "older", label: "Older" },
+  ];
+
+  return (
+    <div className={`${boardCard} p-5`}>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-violet-400/15 text-violet-300">
+            <FiActivity className="text-xl" />
+          </div>
+
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/50">
+              Activity Center
+            </p>
+            <h2 className="mt-1 text-2xl font-bold text-white">
+              All Activities
+            </h2>
+            <p className="mt-1 text-sm text-white/55">
+              Monitor system-wide activity across projects, issues, tasks, and
+              users.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setPage(1);
+            fetchActivities({ nextPage: 1, append: false });
+          }}
+          className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-white/90"
+        >
+          <FiRefreshCw />
+          Refresh
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-3 xl:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="flex items-center rounded-[14px] border border-white/10 bg-white/[0.07] px-4">
+          <FiSearch className="text-white/40" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search activities..."
+            className="w-full bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-white/35"
+          />
+        </div>
+
+        <div className="flex items-center rounded-[14px] border border-white/10 bg-white/[0.07] px-4">
+          <FiFilter className="text-white/40" />
+          <select
+            value={entityFilter}
+            onChange={(e) => setEntityFilter(e.target.value)}
+            className={selectStyle}
+          >
+            <option value="all">All Entities</option>
+            <option value="project">Project</option>
+            <option value="issue">Issue</option>
+            <option value="task">Task</option>
+            <option value="user">User</option>
+          </select>
+        </div>
+
+        <div className="flex items-center rounded-[14px] border border-white/10 bg-white/[0.07] px-4">
+          <FiFilter className="text-white/40" />
+          <select
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
+            className={selectStyle}
+          >
+            <option value="all">All Actions</option>
+            <option value="created">Created</option>
+            <option value="updated">Updated</option>
+            <option value="deleted">Deleted</option>
+            <option value="status_changed">Status Changed</option>
+            <option value="phase_changed">Phase Changed</option>
+            <option value="priority_changed">Priority Changed</option>
+            <option value="review_changed">Review Changed</option>
+            <option value="assigned">Assigned</option>
+            <option value="assignee_changed">Assignee Changed</option>
+          </select>
+        </div>
+
+        <div className="flex items-center rounded-[14px] border border-white/10 bg-white/[0.07] px-4">
+          <FiFilter className="text-white/40" />
+          <select
+            value={userFilter}
+            onChange={(e) => setUserFilter(e.target.value)}
+            className={selectStyle}
+          >
+            <option value="all">All Users</option>
+            {users.map((item) => (
+              <option key={item._id} value={item._id}>
+                {item.fullName || item.name || item.username || "User"}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-violet-400/15 px-3 py-1 text-xs font-bold text-violet-300">
+          Showing: {filteredActivities.length}
+        </span>
+
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/60">
+          Page: {page}
+        </span>
+
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/60">
+          Per Page: {limit}
+        </span>
+      </div>
+
+      <div className="mt-6 space-y-6">
+        {loading ? (
+          <div className="rounded-[16px] border border-dashed border-white/15 bg-white/[0.04] px-4 py-8 text-center text-sm text-white/55">
+            Loading activities...
+          </div>
+        ) : filteredActivities.length === 0 ? (
+          <div className="rounded-[16px] border border-dashed border-white/15 bg-white/[0.04] px-4 py-8 text-center text-sm text-white/55">
+            No activities found.
+          </div>
+        ) : (
+          <>
+            {groups.map((group) => {
+              const items = grouped[group.key];
+              if (!items || items.length === 0) return null;
+
+              return (
+                <div key={group.key}>
+                  <div className="mb-3 flex items-center gap-2">
+                    <FiClock className="text-white/40" />
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-white/50">
+                      {group.label}
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    {items.map((item) => (
+                      <ActivityCard key={item._id} item={item} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {hasMore && (
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() =>
+                    fetchActivities({ nextPage: page + 1, append: true })
+                  }
+                  disabled={loadingMore}
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loadingMore ? "Loading..." : "View More"}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

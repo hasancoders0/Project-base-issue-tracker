@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -17,11 +17,11 @@ import {
   FiLock,
   FiFileText,
   FiBriefcase,
-  FiFolder,
   FiEdit3,
   FiTrash2,
   FiAlertTriangle,
 } from "react-icons/fi";
+import EditProfileDesignationSection from "@/components/profile/edit/EditProfileDesignationSection";
 
 export default function EditUserPage() {
   const params = useParams();
@@ -31,10 +31,8 @@ export default function EditUserPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [projectsLoading, setProjectsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const [projects, setProjects] = useState([]);
   const [user, setUser] = useState(null);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [preview, setPreview] = useState("");
@@ -62,6 +60,8 @@ export default function EditUserPage() {
     preferredCommunication: "",
 
     jobTitle: "",
+    designations: [],
+    customDesignation: "",
     skills: "",
     experienceLevel: "",
     cvFile: null,
@@ -74,7 +74,6 @@ export default function EditUserPage() {
   useEffect(() => {
     if (!userId) return;
     fetchUser();
-    fetchProjects();
   }, [userId]);
 
   useEffect(() => {
@@ -88,14 +87,6 @@ export default function EditUserPage() {
       }
     }
   }, []);
-
-  const shouldShowProjects = useMemo(() => {
-    return (
-      formData.role === "project-manager" ||
-      formData.role === "employee" ||
-      formData.role === "client"
-    );
-  }, [formData.role]);
 
   const isOwnAccount =
     loggedInUser &&
@@ -150,6 +141,10 @@ export default function EditUserPage() {
         preferredCommunication: currentUser.preferredCommunication || "",
 
         jobTitle: currentUser.jobTitle || "",
+        designations: Array.isArray(currentUser.designations)
+          ? currentUser.designations
+          : [],
+        customDesignation: currentUser.customDesignation || "",
         skills: Array.isArray(currentUser.skills)
           ? currentUser.skills.join(", ")
           : "",
@@ -171,23 +166,6 @@ export default function EditUserPage() {
     }
   };
 
-  const fetchProjects = async () => {
-    try {
-      setProjectsLoading(true);
-
-      const res = await fetch("/api/projects", { cache: "no-store" });
-      const data = await res.json();
-
-      if (res.ok) {
-        setProjects(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.log("PROJECT FETCH ERROR:", error);
-    } finally {
-      setProjectsLoading(false);
-    }
-  };
-
   const handleChange = (e) => {
     const { name, value, files, type } = e.target;
 
@@ -206,31 +184,10 @@ export default function EditUserPage() {
       return;
     }
 
-    setFormData((prev) => {
-      const updated = {
-        ...prev,
-        [name]: value,
-      };
-
-      if (name === "role" && value === "admin") {
-        updated.assignedProjects = [];
-      }
-
-      return updated;
-    });
-  };
-
-  const handleProjectSelect = (projectId) => {
-    setFormData((prev) => {
-      const exists = prev.assignedProjects.includes(projectId);
-
-      return {
-        ...prev,
-        assignedProjects: exists
-          ? prev.assignedProjects.filter((id) => id !== projectId)
-          : [...prev.assignedProjects, projectId],
-      };
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const uploadFile = async (file, type) => {
@@ -299,13 +256,15 @@ export default function EditUserPage() {
         preferredCommunication: formData.preferredCommunication,
 
         jobTitle: formData.jobTitle,
+        designations: formData.designations,
+        customDesignation: formData.customDesignation,
         skills: formData.skills,
         experienceLevel: formData.experienceLevel,
         cvFile: cvPath,
 
         role: formData.role,
         status: formData.status,
-        assignedProjects: shouldShowProjects ? formData.assignedProjects : [],
+        assignedProjects: formData.assignedProjects,
       };
 
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -421,8 +380,7 @@ export default function EditUserPage() {
               <div>
                 <h1 className="text-3xl font-bold text-slate-900">Edit User</h1>
                 <p className="mt-1 text-sm text-slate-500">
-                  Update account details, profile information, and assigned
-                  projects.
+                  Update account details and user information.
                 </p>
               </div>
             </div>
@@ -777,157 +735,97 @@ export default function EditUserPage() {
             )}
 
             {(formData.role === "employee" ||
-              formData.role === "project-manager") && (
-              <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
-                <h3 className="text-xl font-bold text-slate-900">
-                  Professional Information
-                </h3>
+              formData.role === "project-manager" ||
+              formData.role === "admin") && (
+              <>
+                <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
+                  <h3 className="text-xl font-bold text-slate-900">
+                    Professional Information
+                  </h3>
 
-                <div className="mt-5 grid gap-5 md:grid-cols-2">
-                  <div>
-                    <label className={labelClass}>Job Title</label>
-                    <div className={inputWrap}>
-                      <FiBriefcase className="text-slate-400" />
-                      <input
-                        type="text"
-                        name="jobTitle"
-                        value={formData.jobTitle}
-                        onChange={handleChange}
-                        placeholder="Developer / Designer / Marketer / QA"
-                        className={inputClass}
-                      />
+                  <div className="mt-5 grid gap-5 md:grid-cols-2">
+                    <div>
+                      <label className={labelClass}>Job Title</label>
+                      <div className={inputWrap}>
+                        <FiBriefcase className="text-slate-400" />
+                        <input
+                          type="text"
+                          name="jobTitle"
+                          value={formData.jobTitle}
+                          onChange={handleChange}
+                          placeholder="Developer / Designer / Marketer / QA"
+                          className={inputClass}
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className={labelClass}>Skills</label>
-                    <div className={inputWrap}>
-                      <FiFileText className="text-slate-400" />
-                      <input
-                        type="text"
-                        name="skills"
-                        value={formData.skills}
-                        onChange={handleChange}
-                        placeholder="Shopify, Wordpress, Laravel, React, NodeJS"
-                        className={inputClass}
-                      />
+                    <div>
+                      <label className={labelClass}>Skills</label>
+                      <div className={inputWrap}>
+                        <FiFileText className="text-slate-400" />
+                        <input
+                          type="text"
+                          name="skills"
+                          value={formData.skills}
+                          onChange={handleChange}
+                          placeholder="Shopify, Wordpress, Laravel, React, NodeJS"
+                          className={inputClass}
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className={labelClass}>Experience Level</label>
-                    <select
-                      name="experienceLevel"
-                      value={formData.experienceLevel}
-                      onChange={handleChange}
-                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                    >
-                      <option value="">Select experience level</option>
-                      <option value="fresher">Fresher</option>
-                      <option value="junior">Junior</option>
-                      <option value="mid">Mid</option>
-                      <option value="senior">Senior</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className={labelClass}>Upload CV (PDF only)</label>
-                    <input
-                      type="file"
-                      name="cvFile"
-                      accept="application/pdf"
-                      onChange={handleChange}
-                      className={fileClass}
-                    />
-
-                    {user?.cvFile && !formData.cvFile && (
-                      <a
-                        href={user.cvFile}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 inline-block text-sm font-medium text-violet-600 hover:text-violet-700"
+                    <div>
+                      <label className={labelClass}>Experience Level</label>
+                      <select
+                        name="experienceLevel"
+                        value={formData.experienceLevel}
+                        onChange={handleChange}
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                       >
-                        View Current CV
-                      </a>
-                    )}
-
-                    {formData.cvFile && (
-                      <p className="mt-3 text-sm text-slate-500">
-                        Selected: {formData.cvFile.name}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {shouldShowProjects && (
-              <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">
-                      Assign Projects
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Select one or multiple projects for this user.
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl bg-violet-100 px-3 py-2 text-sm font-medium text-violet-700">
-                    Selected: {formData.assignedProjects.length}
-                  </div>
-                </div>
-
-                <div className="mt-5 max-h-[360px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4">
-                  {projectsLoading ? (
-                    <p className="text-sm text-slate-500">
-                      Loading projects...
-                    </p>
-                  ) : projects.length === 0 ? (
-                    <p className="text-sm text-slate-500">No projects found.</p>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                      {projects.map((project) => {
-                        const isSelected = formData.assignedProjects.includes(
-                          project._id,
-                        );
-
-                        return (
-                          <button
-                            type="button"
-                            key={project._id}
-                            onClick={() => handleProjectSelect(project._id)}
-                            className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition ${
-                              isSelected
-                                ? "border-violet-500 bg-violet-50"
-                                : "border-slate-200 bg-white hover:border-violet-300"
-                            }`}
-                          >
-                            <div
-                              className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${
-                                isSelected
-                                  ? "bg-violet-100 text-violet-700"
-                                  : "bg-slate-100 text-slate-500"
-                              }`}
-                            >
-                              <FiFolder />
-                            </div>
-
-                            <div className="min-w-0">
-                              <p className="line-clamp-2 font-semibold text-slate-900">
-                                {project.title}
-                              </p>
-                              <p className="mt-1 text-xs text-slate-500">
-                                {project.status || "In Progress"}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
+                        <option value="">Select experience level</option>
+                        <option value="fresher">Fresher</option>
+                        <option value="junior">Junior</option>
+                        <option value="mid">Mid</option>
+                        <option value="senior">Senior</option>
+                      </select>
                     </div>
-                  )}
+
+                    <div>
+                      <label className={labelClass}>Upload CV (PDF only)</label>
+                      <input
+                        type="file"
+                        name="cvFile"
+                        accept="application/pdf"
+                        onChange={handleChange}
+                        className={fileClass}
+                      />
+
+                      {user?.cvFile && !formData.cvFile && (
+                        <a
+                          href={user.cvFile}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 inline-block text-sm font-medium text-violet-600 hover:text-violet-700"
+                        >
+                          View Current CV
+                        </a>
+                      )}
+
+                      {formData.cvFile && (
+                        <p className="mt-3 text-sm text-slate-500">
+                          Selected: {formData.cvFile.name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+
+                <EditProfileDesignationSection
+                  role={formData.role}
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </>
             )}
 
             <button

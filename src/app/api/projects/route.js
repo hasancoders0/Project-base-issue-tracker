@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Project from "@/models/Project";
 import User from "@/models/User";
+import Activity from "@/models/Activity";
 import slugify from "slugify";
 
 function getRequester(request) {
@@ -18,7 +19,10 @@ export async function GET() {
     await connectDB();
 
     const projects = await Project.find()
-      .populate("clientUserId", "fullName username email role address")
+      .populate(
+        "clientUserId",
+        "fullName username email role address assignedProjects",
+      )
       .populate("assignedTeamMembers", "fullName username email role image")
       .sort({ createdAt: -1 });
 
@@ -37,10 +41,7 @@ export async function POST(request) {
 
     const requester = getRequester(request);
 
-    if (
-      requester.role !== "admin" &&
-      requester.role !== "project-manager"
-    ) {
+    if (requester.role !== "admin" && requester.role !== "project-manager") {
       return NextResponse.json(
         { message: "Only admin or project manager can create a project" },
         { status: 403 },
@@ -121,6 +122,7 @@ export async function POST(request) {
       note: formData.get("note") || "",
     });
 
+    // sync assigned project to team members
     if (assignedTeamMembers.length > 0) {
       await User.updateMany(
         { _id: { $in: assignedTeamMembers } },
@@ -128,8 +130,32 @@ export async function POST(request) {
       );
     }
 
+    // sync assigned project to selected client user
+    if (finalClientUserId) {
+      await User.findByIdAndUpdate(
+        finalClientUserId,
+        { $addToSet: { assignedProjects: newProject._id } },
+        { new: true },
+      );
+    }
+
+    // global activity log
+    await Activity.create({
+      entityType: "project",
+      entityId: newProject._id,
+      projectId: newProject._id,
+      action: "created",
+      field: "project",
+      from: null,
+      to: newProject.title,
+      performedBy: requester.id,
+    });
+
     const populatedProject = await Project.findById(newProject._id)
-      .populate("clientUserId", "fullName username email role address")
+      .populate(
+        "clientUserId",
+        "fullName username email role address assignedProjects",
+      )
       .populate("assignedTeamMembers", "fullName username email role image");
 
     return NextResponse.json(populatedProject, { status: 201 });

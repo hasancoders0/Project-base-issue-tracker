@@ -13,8 +13,13 @@ import {
   FiFolder,
   FiCheckSquare,
   FiBarChart2,
+  FiClipboard,
+  FiActivity,
 } from "react-icons/fi";
 import ProfileSidebarItem from "@/components/ProfileSidebarItem";
+
+const sidebarCard =
+  "rounded-[20px] border border-white/10 bg-white/[0.04] p-4 backdrop-blur-md shadow-[0_18px_60px_rgba(0,0,0,0.25)]";
 
 export default function ProfileSidebar({
   user,
@@ -24,11 +29,18 @@ export default function ProfileSidebar({
   const canManage =
     user?.role === "admin" || user?.role === "project-manager";
 
+  const canUseTasks =
+    user?.role === "admin" ||
+    user?.role === "project-manager" ||
+    user?.role === "employee";
+
+  const canViewAllActivities =
+    user?.role === "admin" || user?.role === "project-manager";
+
   return (
-    <div className="rounded-3xl bg-slate-50 p-4">
-      <div className="space-y-3">
+    <div className={sidebarCard}>
+      <div className="space-y-2">
         <ProfileSidebarItem
-          href="#"
           icon={<FiGrid />}
           title="Dashboard"
           subtitle="Overview"
@@ -37,7 +49,6 @@ export default function ProfileSidebar({
         />
 
         <ProfileSidebarItem
-          href="#"
           icon={<FiFolder />}
           title="My Projects"
           subtitle="Assigned projects"
@@ -45,17 +56,45 @@ export default function ProfileSidebar({
           onClick={() => setActiveSection("my-projects")}
         />
 
+        {canUseTasks && (
+          <ProfileSidebarItem
+            icon={<FiCheckSquare />}
+            title="My Tasks"
+            subtitle="Assigned tasks"
+            active={safeSection === "my-tasks"}
+            onClick={() => setActiveSection("my-tasks")}
+          />
+        )}
+
+        {canManage && (
+          <ProfileSidebarItem
+            icon={<FiClipboard />}
+            title="Task Management"
+            subtitle="Manage all tasks"
+            active={safeSection === "task-management"}
+            onClick={() => setActiveSection("task-management")}
+          />
+        )}
+
+        {canViewAllActivities && (
+          <ProfileSidebarItem
+            icon={<FiActivity />}
+            title="All Activities"
+            subtitle="System activity log"
+            active={safeSection === "all-activities"}
+            onClick={() => setActiveSection("all-activities")}
+          />
+        )}
+
         <ProfileSidebarItem
-          href="#"
-          icon={<FiCheckSquare />}
-          title="My Tasks"
-          subtitle="Assigned issues"
-          active={safeSection === "my-tasks"}
-          onClick={() => setActiveSection("my-tasks")}
+          icon={<FiActivity />}
+          title="My Activities"
+          subtitle="Your activity"
+          active={safeSection === "my-activities"}
+          onClick={() => setActiveSection("my-activities")}
         />
 
         <ProfileSidebarItem
-          href="#"
           icon={<FiCheckSquare />}
           title="ToDo List"
           subtitle="Personal tasks"
@@ -63,17 +102,17 @@ export default function ProfileSidebar({
           onClick={() => setActiveSection("todo")}
         />
 
-        <ProfileSidebarItem
-          href="#"
-          icon={<FiPlusSquare />}
-          title="Add Task"
-          subtitle="Create personal task"
-          active={safeSection === "add-task"}
-          onClick={() => setActiveSection("add-task")}
-        />
+        {canManage && (
+          <ProfileSidebarItem
+            icon={<FiPlusSquare />}
+            title="Add Task"
+            subtitle="Create task"
+            active={safeSection === "add-task"}
+            onClick={() => setActiveSection("add-task")}
+          />
+        )}
 
         <ProfileSidebarItem
-          href="#"
           icon={<FiUser />}
           title="My Profile"
           subtitle="Account details"
@@ -82,7 +121,6 @@ export default function ProfileSidebar({
         />
 
         <ProfileSidebarItem
-          href="#"
           icon={<FiEdit2 />}
           title="Edit Profile"
           subtitle="Update account"
@@ -91,10 +129,9 @@ export default function ProfileSidebar({
         />
 
         <ProfileSidebarItem
-          href="#"
           icon={<FiCalendar />}
           title="Calendar"
-          subtitle="Schedule view"
+          subtitle="Schedule"
           active={safeSection === "calendar"}
           onClick={() => setActiveSection("calendar")}
         />
@@ -120,7 +157,6 @@ export default function ProfileSidebar({
         {user?.role === "admin" && (
           <>
             <ProfileSidebarItem
-              href="#"
               icon={<FiBarChart2 />}
               title="Analytics"
               subtitle="Admin only"
@@ -129,7 +165,6 @@ export default function ProfileSidebar({
             />
 
             <ProfileSidebarItem
-              href="#"
               icon={<FiUserPlus />}
               title="Add User"
               subtitle="Admin only"
@@ -138,7 +173,6 @@ export default function ProfileSidebar({
             />
 
             <ProfileSidebarItem
-              href="#"
               icon={<FiUsers />}
               title="User List"
               subtitle="Admin only"
@@ -149,7 +183,6 @@ export default function ProfileSidebar({
         )}
 
         <ProfileSidebarItem
-          href="#"
           icon={<FiHelpCircle />}
           title="Help"
           subtitle="Support"

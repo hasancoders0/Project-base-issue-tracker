@@ -1,140 +1,149 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose'
 
 const userSchema = new mongoose.Schema(
   {
     role: {
       type: String,
-      enum: ["admin", "project-manager", "employee", "client"],
+      enum: ['admin', 'project-manager', 'employee', 'client'],
       required: true,
-      default: "employee",
+      default: 'employee'
     },
 
     assignedProjects: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Project",
-      },
+        ref: 'Project'
+      }
     ],
 
     status: {
       type: String,
-      enum: ["active", "inactive"],
-      default: "active",
+      enum: ['active', 'inactive'],
+      default: 'active'
     },
 
     // Basic Info
     fullName: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
     email: {
       type: String,
       required: true,
       unique: true,
-      trim: true,
+      trim: true
     },
     username: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
     password: {
       type: String,
-      required: true,
+      required: true
     },
     image: {
       type: String,
-      default: "",
+      default: ''
     },
 
     // Contact Info
     phone: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
     address: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
 
     // Social Links
     linkedin: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
     facebook: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
     whatsapp: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
     slack: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
     website: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
 
     // Client fields
     companyName: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
     companyWebsite: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
     contractStartDate: {
       type: Date,
-      default: null,
+      default: null
     },
     contractEndDate: {
       type: Date,
-      default: null,
+      default: null
     },
     preferredCommunication: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
     },
 
     // Employee + Project Manager fields
     jobTitle: {
       type: String,
-      default: "",
-      trim: true,
+      default: '',
+      trim: true
+    },
+    designations: {
+      type: [String],
+      default: []
+    },
+    customDesignation: {
+      type: String,
+      default: '',
+      trim: true
     },
     skills: {
       type: [String],
-      default: [],
+      default: []
     },
     experienceLevel: {
       type: String,
-      enum: ["", "fresher", "junior", "mid", "senior"],
-      default: "",
+      enum: ['', 'fresher', 'junior', 'mid', 'senior'],
+      default: ''
     },
     cvFile: {
       type: String,
-      default: "",
-    },
+      default: ''
+    }
   },
   {
-    timestamps: true,
-  },
-);
+    timestamps: true
+  }
+)
 
-export default mongoose.models.User || mongoose.model("User", userSchema);
+export default mongoose.models.User || mongoose.model('User', userSchema)
