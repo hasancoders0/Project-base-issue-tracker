@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Task from "@/models/Task";
-import TaskActivity from "@/models/TaskActivity";
 import mongoose from "mongoose";
 
 async function getCurrentUser(request) {
